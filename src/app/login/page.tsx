@@ -25,134 +25,159 @@ import { doc, getDoc, setDoc } from "firebase/firestore"
 
 /**
  * ChemGuard AI Login Page.
- * Supports one-click demo login using predefined credentials.
+ * Supports one-click demo login with automatic account initialization.
  */
 export default function LoginPage() {
   const router = useRouter()
   const auth = useAuth()
   const db = useFirestore()
   const { user, isUserLoading } = useUser()
-  const [isProvisioning, setIsProvisioning] = React.useState(false)
+  
+  const [isInitializing, setIsInitializing] = React.useState(false)
   const [isVerifying, setIsVerifying] = React.useState(false)
 
   const demoCreds = {
-    admin: { email: "admin@chemguard.ai", password: "admin123" },
-    pharma: { email: "pharma@chemguard.ai", password: "pharma123" },
-    transporter: { email: "transport@chemguard.ai", password: "transport123" }
-  }
-
-  // Automatic redirect if already logged in or after successful login
-  React.useEffect(() => {
-    if (!isUserLoading && user && !isProvisioning) {
-      const fetchRoleAndRedirect = async () => {
-        setIsVerifying(true)
-        try {
-          const userDoc = await getDoc(doc(db, "users", user.uid))
-          if (userDoc.exists()) {
-            const userData = userDoc.data()
-            const role = userData.role
-            
-            if (role === 'admin') {
-              router.push("/admin/dashboard")
-            } else if (role === 'pharma') {
-              router.push("/pharma/dashboard")
-            } else if (role === 'transporter') {
-              router.push("/transport/dashboard")
-            } else {
-              await signOut(auth)
-            }
-          } else {
-            await signOut(auth)
-          }
-        } catch (error) {
-          await signOut(auth)
-        } finally {
-          setIsVerifying(false)
-        }
-      }
-      fetchRoleAndRedirect()
-    }
-  }, [user, isUserLoading, db, router, auth, isProvisioning])
-
-  const handleLogin = async (portal: 'admin' | 'pharma' | 'transporter') => {
-    const { email, password } = demoCreds[portal]
-    
-    setIsVerifying(true)
-    try {
-      await signInWithEmailAndPassword(auth, email, password)
-    } catch (error: any) {
-      setIsVerifying(false)
-      toast({ 
-        variant: "destructive", 
-        title: "Login Failed", 
-        description: "Demo login failed. Please initialize demo accounts." 
-      })
+    admin: { 
+      email: "admin@chemguard.ai", 
+      password: "admin123",
+      role: "admin",
+      name: "System Admin"
+    },
+    pharma: { 
+      email: "pharma@chemguard.ai", 
+      password: "pharma123",
+      role: "pharma",
+      name: "Pharma Lab User"
+    },
+    transporter: { 
+      email: "transport@chemguard.ai", 
+      password: "transport123",
+      role: "transporter",
+      name: "Transport Logistics"
     }
   }
 
-  const handleProvisionDemoData = async () => {
-    setIsProvisioning(true)
-    const demoUsers = [
-      { email: "admin@chemguard.ai", password: "admin123", role: "admin", name: "Dr. Elena Vance" },
-      { email: "pharma@chemguard.ai", password: "pharma123", role: "pharma", name: "Pharma Lab User" },
-      { email: "transport@chemguard.ai", password: "transport123", role: "transporter", name: "K. Kumar" }
-    ]
-
-    toast({ title: "System Initialization", description: "Configuring security layers..." })
+  /**
+   * Automatically initializes demo accounts if they don't exist.
+   * Runs on app startup and on failed login attempts.
+   */
+  const initializeDemoAccounts = async () => {
+    setIsInitializing(true)
+    const accounts = [demoCreds.admin, demoCreds.pharma, demoCreds.transporter]
 
     try {
-      for (const u of demoUsers) {
+      for (const account of accounts) {
         let uid = ""
         try {
-          const userCredential = await signInWithEmailAndPassword(auth, u.email, u.password)
-          uid = userCredential.user.uid
-        } catch (signInError: any) {
-          if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-email' || signInError.code === 'auth/invalid-credential') {
+          // Attempt sign in to see if account exists
+          const userCred = await signInWithEmailAndPassword(auth, account.email, account.password)
+          uid = userCred.user.uid
+        } catch (error: any) {
+          if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-email') {
             try {
-              const userCredential = await createUserWithEmailAndPassword(auth, u.email, u.password)
-              uid = userCredential.user.uid
+              // Create new authentication user
+              const userCred = await createUserWithEmailAndPassword(auth, account.email, account.password)
+              uid = userCred.user.uid
             } catch (createError: any) {
               continue
             }
           } else {
-            continue 
+            continue
           }
         }
 
         if (uid) {
+          // Sync profile to Firestore collection "users"
           await setDoc(doc(db, "users", uid), {
             id: uid,
-            name: u.name,
-            email: u.email,
-            role: u.role,
+            email: account.email,
+            role: account.role,
+            name: account.name,
             createdAt: new Date().toISOString()
           }, { merge: true })
 
-          const roleCollMap: Record<string, string> = {
+          // Also set legacy role check collections for security rules compatibility
+          const roleMap: Record<string, string> = {
             admin: "roles_admin",
             pharma: "roles_pharma",
             transporter: "roles_transporter"
           }
-          await setDoc(doc(db, roleCollMap[u.role], uid), { active: true }, { merge: true })
+          await setDoc(doc(db, roleMap[account.role], uid), { active: true }, { merge: true })
         }
       }
       
+      // Ensure we are signed out after initialization to allow clean one-click login
       await signOut(auth)
-      toast({ title: "Setup Success", description: "Demo environment fully synchronized. You may now log in." })
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Initialization Error", description: "Profile synchronization encountered an interruption." })
+    } catch (error) {
+      // Initialization error handled silently
     } finally {
-      setIsProvisioning(false)
+      setIsInitializing(false)
     }
   }
 
-  if (isUserLoading || isVerifying) {
+  // Auto-initialize demo accounts on mount
+  React.useEffect(() => {
+    const hasInit = localStorage.getItem('chemguard_demo_init')
+    if (!hasInit) {
+      initializeDemoAccounts().then(() => {
+        localStorage.setItem('chemguard_demo_init', 'true')
+      })
+    }
+  }, [])
+
+  // Automatic redirect if already logged in
+  React.useEffect(() => {
+    if (!isUserLoading && user && !isInitializing && !isVerifying) {
+      const fetchRoleAndRedirect = async () => {
+        try {
+          const userDoc = await getDoc(doc(db, "users", user.uid))
+          if (userDoc.exists()) {
+            const role = userDoc.data().role
+            if (role === 'admin') router.push("/admin/dashboard")
+            else if (role === 'pharma') router.push("/pharma/dashboard")
+            else if (role === 'transporter') router.push("/transport/dashboard")
+            else await signOut(auth)
+          } else {
+            // Profile missing, might need re-init
+            await signOut(auth)
+          }
+        } catch (error) {
+          await signOut(auth)
+        }
+      }
+      fetchRoleAndRedirect()
+    }
+  }, [user, isUserLoading, isInitializing, isVerifying, db, router, auth])
+
+  const handleLogin = async (portal: 'admin' | 'pharma' | 'transporter') => {
+    const creds = demoCreds[portal]
+    setIsVerifying(true)
+
+    try {
+      await signInWithEmailAndPassword(auth, creds.email, creds.password)
+    } catch (error: any) {
+      // If auth fails, try initializing demo accounts and retry once
+      try {
+        await initializeDemoAccounts()
+        await signInWithEmailAndPassword(auth, creds.email, creds.password)
+      } catch (retryError: any) {
+        setIsVerifying(false)
+        toast({ 
+          variant: "destructive", 
+          title: "Demo login failed", 
+          description: "Please click the initialize button at the bottom." 
+        })
+      }
+    }
+  }
+
+  if (isUserLoading || isVerifying || isInitializing) {
     return (
       <div className="min-h-screen w-full bg-[#0a0f18] flex flex-col items-center justify-center p-6">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-12 h-12 text-primary animate-spin" />
-          <p className="text-[10px] font-bold text-primary uppercase tracking-[0.3em] animate-pulse">
-            Establishing Secure Satellite Link
+          <p className="text-[10px] font-bold text-primary uppercase tracking-[0.3em] animate-pulse text-center">
+            {isInitializing ? "Initializing Secure Demo Environment" : "Establishing Secure Satellite Link"}
           </p>
         </div>
       </div>
@@ -191,32 +216,32 @@ export default function LoginPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full max-w-7xl relative z-10">
         <PortalCard 
           title="Admin Portal"
-          description="System monitoring and management dashboard."
+          description="System monitoring and global management console."
           icon={Settings}
           color="primary"
-          badges={["ISO 27001 Certified", "Multi-Factor Auth"]}
+          badges={["ISO 27001 Certified", "Global Admin"]}
           onLogin={() => handleLogin('admin')}
           buttonText="Login to Admin"
         />
 
         <PortalCard 
           title="Pharma Lab Portal"
-          description="Chemical inventory and usage tracking."
+          description="Chemical inventory and laboratory tracking."
           icon={Beaker}
           color="accent"
-          badges={["FDA Compliant Logging", "Encrypted Storage"]}
+          badges={["FDA Compliant", "Lab Manager"]}
           onLogin={() => handleLogin('pharma')}
           buttonText="Login to Lab"
         />
 
         <PortalCard 
           title="Transport Portal"
-          description="Shipment tracking and checkpoint updates."
+          description="Shipment tracking and logistics monitoring."
           icon={Truck}
           color="orange"
-          badges={["Real-Time GPS Validated", "Checkpoint Verification"]}
+          badges={["GPS Validated", "Transporter"]}
           onLogin={() => handleLogin('transporter')}
-          buttonText="Login to Vehicle"
+          buttonText="Login to Transport"
         />
       </div>
 
@@ -224,19 +249,19 @@ export default function LoginPage() {
         <div className="p-4 bg-white/5 border border-white/10 rounded-2xl max-w-md text-center">
           <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest flex items-center justify-center gap-2 mb-2">
             <AlertCircle className="w-3 h-3 text-orange-400" />
-            System Setup
+            One-Click Demo Mode
           </p>
           <p className="text-[11px] text-white/60 leading-relaxed mb-4">
-            If one-click login fails, please click the button below to initialize the demo security profiles in the cloud.
+            If login fails, click the button below to re-initialize the demo accounts in the cloud.
           </p>
           <Button 
             variant="outline" 
-            disabled={isProvisioning}
-            onClick={handleProvisionDemoData}
+            disabled={isInitializing}
+            onClick={initializeDemoAccounts}
             className="w-full border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 font-headline font-bold uppercase tracking-widest text-[10px] h-12 px-6 gap-2"
           >
-            <Database className={cn("w-4 h-4", isProvisioning && "animate-spin")} />
-            {isProvisioning ? "Synchronizing Cloud Hub..." : "Initialize Demo Accounts"}
+            <Database className={cn("w-4 h-4", isInitializing && "animate-spin")} />
+            {isInitializing ? "Initializing..." : "Initialize Demo Accounts"}
           </Button>
         </div>
       </div>
@@ -268,9 +293,9 @@ function PortalCard({
   buttonText
 }: PortalCardProps) {
   const colorMap = {
-    primary: "text-primary border-primary/20 bg-primary/5 hover:border-primary/40 shadow-primary/10",
-    accent: "text-accent border-accent/20 bg-accent/5 hover:border-accent/40 shadow-accent/10",
-    orange: "text-orange-400 border-orange-400/20 bg-orange-400/5 hover:border-orange-400/40 shadow-orange-400/10"
+    primary: "text-primary border-primary/20 bg-primary/5 shadow-primary/10",
+    accent: "text-accent border-accent/20 bg-accent/5 shadow-accent/10",
+    orange: "text-orange-400 border-orange-400/20 bg-orange-400/5 shadow-orange-400/10"
   }
 
   const btnMap = {
