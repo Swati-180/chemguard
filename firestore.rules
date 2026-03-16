@@ -1,0 +1,177 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * CORE PHILOSOPHY: ChemGuard AI Security Model
+     * 1. Multi-Tenant Role-Based Access (DBAC): Access is governed by three primary roles: 'admin', 'pharma', and 'transporter'.
+     * 2. Hierarchical Ownership: Data is structured under Pharma or Transporter companies. Access is primarily granted 
+     *    based on the user's 'associatedCompanyId' stored in their UserProfile.
+     * 3. Authorization Independence (Denormalization): To maintain performance and avoid deep recursive 'get()' calls, 
+     *    critical authorization context (like 'involvedPharmaCompanyIds' or 'shipmentTransporterCompanyId') is 
+     *    denormalized directly onto child documents (ChemicalBatches, Alerts, IoTDevices).
+     * 4. Structural Segregation: Entities are partitioned by company type to enforce clear boundaries between 
+     *    pharmaceutical manufacturing and logistics operations.
+     */
+
+    // --- HELPER FUNCTIONS ---
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    function getProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Checks if the user belongs to the specified company ID
+    function isMemberOf(companyId) {
+      return isSignedIn() && getProfile().associatedCompanyId == companyId;
+    }
+
+    // Checks for pharma role specifically
+    function isPharmaRole() {
+      return isSignedIn() && getProfile().role == 'pharma';
+    }
+
+    // Checks for transporter role specifically
+    function isTransporterRole() {
+      return isSignedIn() && getProfile().role == 'transporter';
+    }
+
+    // Validates that an existing document belongs to the user's company
+    function isExistingCompanyData(companyIdField) {
+      return resource != null && isMemberOf(companyIdField);
+    }
+
+    // --- COLLECTION RULES ---
+
+    /**
+     * @description Rules for User Profiles. Users manage their own profiles; Admins manage all.
+     * @path /users/{userId}
+     * @allow (get, update) if user is the owner. (list) if admin.
+     * @deny (delete) for non-admins to prevent account deletion bypass.
+     * @principle Ownership and Role-Based Access.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && (request.resource.data.role == resource.data.role); // Role immutable by user
+      allow delete: if isAdmin();
+    }
+
+    /**
+     * @description Administrative flag collection. Only accessible by admins.
+     * @path /roles_admin/{adminId}
+     * @allow (get) if signed in. (write) if admin.
+     * @deny (list) to anyone except existing admins.
+     * @principle Restricted administrative control.
+     */
+    match /roles_admin/{adminId} {
+      allow get: if isSignedIn();
+      allow list, create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Pharmaceutical Company master data.
+     * @path /pharmaCompanies/{pharmaCompanyId}
+     * @allow (get, list) if member of company or admin. (update) if admin.
+     * @deny (delete) entirely to preserve historical compliance data.
+     * @principle Corporate data segregation.
+     */
+    match /pharmaCompanies/{pharmaCompanyId} {
+      allow get, list: if isMemberOf(pharmaCompanyId) || isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    /**
+     * @description Logistics Company master data.
+     * @path /transporterCompanies/{transporterCompanyId}
+     * @allow (get, list) if member of company or admin. (update) if admin.
+     * @deny (create) to non-admins.
+     * @principle Corporate data segregation.
+     */
+    match /transporterCompanies/{transporterCompanyId} {
+      allow get, list: if isMemberOf(transporterCompanyId) || isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    /**
+     * @description Chemical batches owned by a Pharma Company.
+     * @path /pharmaCompanies/{pharmaCompanyId}/chemicalBatches/{batchId}
+     * @allow (read) if pharma owner OR if transporter is assigned to the shipment.
+     * @allow (write) if pharma owner.
+     * @principle Cross-company visibility via denormalized 'shipmentTransporterCompanyId'.
+     */
+    match /pharmaCompanies/{pharmaCompanyId}/chemicalBatches/{batchId} {
+      allow get, list: if isMemberOf(pharmaCompanyId) || isAdmin() || (isTransporterRole() && resource.data.shipmentTransporterCompanyId == getProfile().associatedCompanyId);
+      allow create: if isMemberOf(pharmaCompanyId) && request.resource.data.pharmaCompanyId == pharmaCompanyId;
+      allow update: if isExistingCompanyData(pharmaCompanyId);
+      allow delete: if isAdmin();
+    }
+
+    /**
+     * @description Shipments managed by Transporters.
+     * @path /transporterCompanies/{transporterCompanyId}/shipments/{shipmentId}
+     * @allow (read) if transporter owner OR if pharma company is involved in shipment.
+     * @allow (write) if transporter owner.
+     * @principle Shared access via denormalized 'involvedPharmaCompanyIds' map.
+     */
+    match /transporterCompanies/{transporterCompanyId}/shipments/{shipmentId} {
+      allow get, list: if isMemberOf(transporterCompanyId) || isAdmin() || (isPharmaRole() && resource.data.involvedPharmaCompanyIds[getProfile().associatedCompanyId] == true);
+      allow create: if isMemberOf(transporterCompanyId) && request.resource.data.transporterCompanyId == transporterCompanyId;
+      allow update: if isExistingCompanyData(transporterCompanyId);
+      allow delete: if isAdmin();
+
+      /**
+       * @description IoT Devices monitoring a specific shipment.
+       * @path /transporterCompanies/{transporterCompanyId}/shipments/{shipmentId}/iotDevices/{deviceId}
+       * @allow (read) inherited from parent shipment visibility logic.
+       * @principle Subcollection path-based security.
+       */
+      match /iotDevices/{deviceId} {
+        allow get, list: if isMemberOf(transporterCompanyId) || isAdmin() || (isPharmaRole() && resource.data.involvedPharmaCompanyIds[getProfile().associatedCompanyId] == true);
+        allow create, update: if isMemberOf(transporterCompanyId);
+        allow delete: if isAdmin();
+      }
+    }
+
+    /**
+     * @description System-wide alerts for shipments or devices.
+     * @path /alerts/{alertId}
+     * @allow (read) if user's company (pharma or transporter) is linked to the alert.
+     * @deny (write) to all non-admins (Alerts are generated by system/IoT).
+     * @principle Root-level collection with multi-party authorization fields.
+     */
+    match /alerts/{alertId} {
+      allow get, list: if isAdmin() || (isTransporterRole() && resource.data.transporterCompanyId == getProfile().associatedCompanyId) || (isPharmaRole() && resource.data.involvedPharmaCompanyIds[getProfile().associatedCompanyId] == true);
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Compliance records for batches or shipments.
+     * @path /pharmaCompanies/{pharmaCompanyId}/complianceRecords/{recordId}
+     * @allow (read) if pharma owner OR if associated transporter is involved.
+     * @allow (write) if pharma owner.
+     * @principle Regulatory data integrity and controlled shared access.
+     */
+    match /pharmaCompanies/{pharmaCompanyId}/complianceRecords/{recordId} {
+      allow get, list: if isMemberOf(pharmaCompanyId) || isAdmin() || (isTransporterRole() && resource.data.shipmentTransporterCompanyId == getProfile().associatedCompanyId);
+      allow create: if isMemberOf(pharmaCompanyId) && request.resource.data.pharmaCompanyId == pharmaCompanyId;
+      allow update: if isExistingCompanyData(pharmaCompanyId);
+      allow delete: if isAdmin();
+    }
+
+  }
+}
