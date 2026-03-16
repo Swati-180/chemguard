@@ -34,7 +34,7 @@ const navItems = [
   { title: "Chemical Inventory", icon: Beaker, href: "/chemicals" },
   { title: "Batch Management", icon: Database, href: "#" },
   { title: "Shipment Requests", icon: Truck, href: "/pharma/shipment-requests" },
-  { title: "Hardware Monitoring", icon: Cpu, href: "#" },
+  { title: "Hardware Monitoring", icon: Cpu, href: "/pharma/hardware-monitoring" },
   { title: "Usage Logs", icon: History, href: "#" },
   { title: "Compliance Logs", icon: ShieldCheck, href: "#" },
   { title: "Alerts", icon: Bell, href: "#" },
