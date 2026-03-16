@@ -14,7 +14,6 @@ import {
   Bell,
   FileText,
   Settings,
-  LogOut
 } from "lucide-react"
 
 import {
@@ -35,7 +34,7 @@ const navItems = [
   { title: "Batch Management", icon: Database, href: "#" },
   { title: "Shipment Requests", icon: Truck, href: "/pharma/shipment-requests" },
   { title: "Hardware Monitoring", icon: Cpu, href: "/pharma/hardware-monitoring" },
-  { title: "Usage Logs", icon: History, href: "#" },
+  { title: "Usage Logs", icon: History, href: "/pharma/usage-logs" },
   { title: "Compliance Logs", icon: ShieldCheck, href: "#" },
   { title: "Alerts", icon: Bell, href: "#" },
   { title: "Reports", icon: FileText, href: "#" },
