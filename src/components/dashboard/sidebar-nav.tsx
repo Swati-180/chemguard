@@ -34,7 +34,7 @@ import {
 const navItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/" },
   { title: "Live Monitoring", icon: Activity, href: "/live-monitoring" },
-  { title: "Chemicals", icon: Beaker, href: "#" },
+  { title: "Chemicals", icon: Beaker, href: "/chemicals" },
   { title: "Shipments", icon: Truck, href: "#" },
   { title: "Hardware Monitoring", icon: Cpu, href: "#" },
   { title: "AI Intelligence", icon: BrainCircuit, href: "#" },
