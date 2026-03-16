@@ -64,13 +64,10 @@ export function PharmaQuickActions() {
         const shipRef = doc(collection(db, "shipment_requests"), shipId)
         setDocumentNonBlocking(shipRef, {
           id: shipId,
-          shipmentIdentifier: shipId,
-          requestorId: user.uid,
-          chemicalBatchIds: ["B-9921"],
-          originLocation: "Seattle Alpha Lab",
-          destinationLocation: "Rotterdam Distribution",
-          expectedDepartureTime: new Date().toISOString(),
-          expectedArrivalTime: new Date(Date.now() + 86400000).toISOString(),
+          shipmentId: shipId,
+          batchId: `B-${Math.floor(Math.random() * 9000) + 1000}`,
+          destination: "Rotterdam Distribution Hub",
+          transporter: "EuroExpress Logistics",
           status: "Pending",
           createdAt: new Date().toISOString()
         }, { merge: true })

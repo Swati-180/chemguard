@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -13,7 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, Filter, ChevronLeft, ChevronRight, MoreHorizontal, Loader2 } from "lucide-react"
+import { Search, Filter, ChevronLeft, ChevronRight, MoreHorizontal, Loader2, Calendar } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase"
@@ -89,11 +90,11 @@ export function ShipmentRequestsTable() {
               <TableRow className="border-white/5 hover:bg-transparent uppercase">
                 <TableHead className="w-12 text-center py-4"><Checkbox className="border-cyan-500/50" /></TableHead>
                 <TableHead className="text-[10px] font-bold py-4">Shipment ID</TableHead>
-                <TableHead className="text-[10px] font-bold py-4">Origin</TableHead>
+                <TableHead className="text-[10px] font-bold py-4">Batch ID</TableHead>
                 <TableHead className="text-[10px] font-bold py-4">Destination</TableHead>
-                <TableHead className="text-[10px] font-bold py-4">Tracking #</TableHead>
+                <TableHead className="text-[10px] font-bold py-4">Transporter</TableHead>
                 <TableHead className="text-[10px] font-bold py-4">Status</TableHead>
-                <TableHead className="text-[10px] font-bold py-4">ETA</TableHead>
+                <TableHead className="text-[10px] font-bold py-4 text-right">Created At</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
@@ -101,13 +102,16 @@ export function ShipmentRequestsTable() {
               {shipments.map((s) => (
                 <TableRow key={s.id} className="border-white/5 hover:bg-white/5 transition-colors group">
                   <TableCell className="text-center py-3"><Checkbox className="border-white/20" /></TableCell>
-                  <TableCell className="py-3 text-[11px] font-mono font-bold text-cyan-400">{s.shipmentIdentifier}</TableCell>
-                  <TableCell className="py-3 text-[11px] text-white font-medium">{s.originLocation}</TableCell>
-                  <TableCell className="py-3 text-[11px] text-muted-foreground">{s.destinationLocation}</TableCell>
-                  <TableCell className="py-3 text-[11px] font-mono text-primary">{s.trackingNumber || 'UNASSIGNED'}</TableCell>
+                  <TableCell className="py-3 text-[11px] font-mono font-bold text-cyan-400">{s.shipmentId}</TableCell>
+                  <TableCell className="py-3 text-[11px] font-mono text-white/80">{s.batchId}</TableCell>
+                  <TableCell className="py-3 text-[11px] text-white font-medium">{s.destination}</TableCell>
+                  <TableCell className="py-3 text-[11px] text-muted-foreground uppercase font-bold tracking-tighter">{s.transporter}</TableCell>
                   <TableCell className="py-3">{getStatusBadge(s.status)}</TableCell>
-                  <TableCell className="py-3 text-[11px] font-mono text-muted-foreground">
-                    {s.expectedArrivalTime ? new Date(s.expectedArrivalTime).toLocaleTimeString() : 'TBD'}
+                  <TableCell className="py-3 text-[10px] font-mono text-muted-foreground text-right">
+                    <div className="flex flex-col items-end">
+                      <span className="text-white/60">{new Date(s.createdAt).toLocaleDateString()}</span>
+                      <span>{new Date(s.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
                   </TableCell>
                   <TableCell className="py-3">
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-white opacity-0 group-hover:opacity-100">
