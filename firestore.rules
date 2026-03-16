@@ -76,8 +76,12 @@ service cloud.firestore {
       allow write: if isStaff();
     }
     
-    // Legacy support for hardware monitoring routes
     match /hardware_devices/{deviceId} {
+      allow get, list: if isStaff();
+      allow write: if isStaff();
+    }
+
+    match /sensor_alerts/{alertId} {
       allow get, list: if isStaff();
       allow write: if isStaff();
     }
@@ -89,7 +93,6 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     
-    // Support for the generic 'alerts' collection often used in quick prototypes
     match /alerts/{alertId} {
       allow get, list: if isStaff();
       allow write: if isStaff();
