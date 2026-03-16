@@ -66,20 +66,18 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ChemicalInventory",
       "type": "object",
-      "description": "Defines the properties of a chemical type.",
+      "description": "Defines the properties of a chemical item in inventory.",
       "properties": {
         "id": { "type": "string" },
         "chemicalName": { "type": "string" },
-        "casNumber": { "type": "string" },
-        "formula": { "type": "string" },
-        "hazardStatement": { "type": "string" },
-        "safetyDataSheetUrl": { "type": "string", "format": "uri" },
-        "maxStorageCapacity": { "type": "number" },
-        "unit": { "type": "string" },
-        "description": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "batchId": { "type": "string" },
+        "manufacturer": { "type": "string" },
+        "quantity": { "type": "number" },
+        "storageLocation": { "type": "string" },
+        "expiryDate": { "type": "string", "format": "date" },
+        "status": { "type": "string" }
       },
-      "required": ["id", "chemicalName", "casNumber", "formula", "hazardStatement", "safetyDataSheetUrl", "maxStorageCapacity", "unit", "description", "createdAt"]
+      "required": ["id", "chemicalName", "batchId", "manufacturer", "quantity", "storageLocation", "expiryDate", "status"]
     },
     "ShipmentRequest": {
       "$schema": "http://json-schema.org/draft-07/schema#",

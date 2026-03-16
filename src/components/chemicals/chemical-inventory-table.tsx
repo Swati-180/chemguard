@@ -80,9 +80,11 @@ export function ChemicalInventoryTable() {
             <TableHeader className="bg-white/2">
               <TableRow className="border-white/5 hover:bg-transparent">
                 <TableHead className="text-[10px] font-bold uppercase py-4">Chemical Name</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase py-4">CAS Number</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase py-4">Formula</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase py-4">Max Capacity</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase py-4">Batch ID</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase py-4">Manufacturer</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase py-4">Quantity</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase py-4">Location</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase py-4">Expiry</TableHead>
                 <TableHead className="text-[10px] font-bold uppercase py-4">Status</TableHead>
                 <TableHead className="text-right py-4"></TableHead>
               </TableRow>
@@ -91,10 +93,12 @@ export function ChemicalInventoryTable() {
               {inventory.map((item) => (
                 <TableRow key={item.id} className="border-white/5 hover:bg-white/5 transition-colors group">
                   <TableCell className="py-4 text-xs font-semibold text-white">{item.chemicalName}</TableCell>
-                  <TableCell className="py-4 text-xs font-mono text-muted-foreground">{item.casNumber}</TableCell>
-                  <TableCell className="py-4 text-xs">{item.formula}</TableCell>
-                  <TableCell className="py-4 text-xs font-medium text-primary">{item.maxStorageCapacity} {item.unit}</TableCell>
-                  <TableCell className="py-4">{getStatusBadge("In Stock")}</TableCell>
+                  <TableCell className="py-4 text-xs font-mono text-cyan-400">[{item.batchId}]</TableCell>
+                  <TableCell className="py-4 text-xs">{item.manufacturer}</TableCell>
+                  <TableCell className="py-4 text-xs font-medium text-primary">{item.quantity}</TableCell>
+                  <TableCell className="py-4 text-xs text-muted-foreground">{item.storageLocation}</TableCell>
+                  <TableCell className="py-4 text-xs font-mono text-muted-foreground">{item.expiryDate}</TableCell>
+                  <TableCell className="py-4">{getStatusBadge(item.status)}</TableCell>
                   <TableCell className="py-4 text-right">
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100">
                       <MoreVertical className="h-4 w-4" />

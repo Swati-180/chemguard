@@ -21,8 +21,36 @@ export default function ChemicalsPage() {
   const handleSeedDemoData = () => {
     const inventoryRef = collection(db, "chemical_inventory")
     const demoItems = [
-      { id: "chem_001", chemicalName: "Hydrocloric Acid", casNumber: "7647-01-0", formula: "HCl", unit: "L", maxStorageCapacity: 5000, hazardStatement: "Corrosive", safetyDataSheetUrl: "https://example.com/sds/hcl", description: "Industrial grade acid", createdAt: new Date().toISOString() },
-      { id: "chem_002", chemicalName: "Ammonium Nitrate", casNumber: "6484-52-2", formula: "NH4NO3", unit: "kg", maxStorageCapacity: 25000, hazardStatement: "Oxidizing", safetyDataSheetUrl: "https://example.com/sds/an", description: "Fertilizer component / Dual-use", createdAt: new Date().toISOString() }
+      { 
+        id: "inv_001", 
+        chemicalName: "Hydrochloric Acid", 
+        batchId: "B-7721", 
+        manufacturer: "GlobalChem Corp", 
+        quantity: 500, 
+        storageLocation: "Section A-12", 
+        expiryDate: "2025-12-31", 
+        status: "In Stock" 
+      },
+      { 
+        id: "inv_002", 
+        chemicalName: "Ammonium Nitrate", 
+        batchId: "B-8832", 
+        manufacturer: "NitroTech Industries", 
+        quantity: 1200, 
+        storageLocation: "Section B-04", 
+        expiryDate: "2024-11-15", 
+        status: "Quarantined" 
+      },
+      { 
+        id: "inv_003", 
+        chemicalName: "Sodium Cyanide", 
+        batchId: "B-9910", 
+        manufacturer: "Precision Reagents", 
+        quantity: 250, 
+        storageLocation: "Hazardous Room 1", 
+        expiryDate: "2026-06-20", 
+        status: "In Stock" 
+      }
     ]
 
     demoItems.forEach(item => {
@@ -31,8 +59,8 @@ export default function ChemicalsPage() {
     })
 
     toast({
-      title: "Data Provisioning Initiated",
-      description: "Provisioning secure chemical inventory data to Firestore.",
+      title: "Inventory Sync Initiated",
+      description: "Provisioning updated chemical inventory records to Firestore.",
     })
   }
 
@@ -54,7 +82,7 @@ export default function ChemicalsPage() {
                   className="bg-accent/20 text-accent border border-accent/30 hover:bg-accent/30 font-headline font-semibold gap-2 h-11 px-6"
                 >
                   <Database className="h-4 w-4" />
-                  Provision Demo Data
+                  Sync Inventory Data
                 </Button>
                 <Button className="bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 font-headline font-semibold gap-2 h-11 px-6 shadow-[0_0_15px_rgba(46,222,255,0.1)]">
                   <Plus className="h-4 w-4" />
