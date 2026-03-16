@@ -81,5 +81,10 @@ service cloud.firestore {
       allow get, list: if hasAnyRole();
       allow write: if isAdmin();
     }
+
+    match /compliance_logs/{id} {
+      allow get, list: if hasAnyRole();
+      allow create: if isAdmin() || isPharma();
+    }
   }
 }

@@ -142,6 +142,22 @@
         "alertStatus": { "type": "string" }
       },
       "required": ["id", "deviceId", "deviceType", "location", "status", "lastSignal", "alertStatus"]
+    },
+    "ComplianceLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ComplianceLog",
+      "type": "object",
+      "description": "Logs for regulatory and safety compliance events.",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "user": { "type": "string" },
+        "action": { "type": "string" },
+        "batchId": { "type": "string" },
+        "location": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "timestamp", "user", "action", "status"]
     }
   },
   "auth": {
@@ -206,6 +222,10 @@
       {
         "path": "/hardware_devices/{id}",
         "definition": { "entityName": "HardwareDevice", "schema": { "$ref": "#/backend/entities/HardwareDevice" }, "description": "Monitored hardware devices." }
+      },
+      {
+        "path": "/compliance_logs/{id}",
+        "definition": { "entityName": "ComplianceLog", "schema": { "$ref": "#/backend/entities/ComplianceLog" }, "description": "Audit event logs for compliance." }
       }
     ]
   }
