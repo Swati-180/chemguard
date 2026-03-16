@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -15,7 +14,8 @@ import {
   Users,
   ShieldCheck,
   FileText,
-  Settings
+  Settings,
+  LogOut
 } from "lucide-react"
 
 import {
@@ -29,7 +29,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  SidebarFooter,
 } from "@/components/ui/sidebar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 const navItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/" },
@@ -39,7 +41,7 @@ const navItems = [
   { title: "Hardware Monitoring", icon: Cpu, href: "/hardware-monitoring" },
   { title: "AI Intelligence", icon: BrainCircuit, href: "/ai-intelligence" },
   { title: "Alerts", icon: Bell, href: "#" },
-  { title: "Users", icon: Users, href: "#" },
+  { title: "Users", icon: Users, href: "/users" },
   { title: "Compliance", icon: ShieldCheck, href: "#" },
   { title: "Reports", icon: FileText, href: "#" },
   { title: "Settings", icon: Settings, href: "#" },
@@ -86,6 +88,23 @@ export function DashboardSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="p-4 group-data-[collapsible=icon]:hidden">
+        <div className="bg-white/5 rounded-xl border border-white/5 p-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-9 w-9 border border-primary/20">
+              <AvatarImage src="https://picsum.photos/seed/admin/40/40" />
+              <AvatarFallback>EV</AvatarFallback>
+            </Avatar>
+            <div className="text-left">
+              <p className="text-xs font-bold text-white">Dr. Elena Vance</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-tighter">Admin Operations</p>
+            </div>
+          </div>
+          <button className="text-muted-foreground hover:text-destructive transition-colors">
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
+      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   )
