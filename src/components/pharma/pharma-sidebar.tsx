@@ -36,7 +36,7 @@ const navItems = [
   { title: "Hardware Monitoring", icon: Cpu, href: "/pharma/hardware-monitoring" },
   { title: "Usage Logs", icon: History, href: "/pharma/usage-logs" },
   { title: "Compliance Logs", icon: ShieldCheck, href: "/pharma/compliance", badge: "14" },
-  { title: "Alerts", icon: Bell, href: "#", alert: true },
+  { title: "Alerts", icon: Bell, href: "/pharma/alerts", alert: true },
   { title: "Reports", icon: FileText, href: "#" },
   { title: "Settings", icon: Settings, href: "#" },
 ]
