@@ -1,4 +1,6 @@
 
+"use client"
+
 import { DashboardSidebar } from "@/components/dashboard/sidebar-nav"
 import { TopBar } from "@/components/dashboard/top-bar"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
@@ -7,9 +9,33 @@ import { UsageBarChart } from "@/components/chemicals/usage-bar-chart"
 import { DistributionPieChart } from "@/components/chemicals/distribution-pie-chart"
 import { BatchRiskIndicators } from "@/components/chemicals/risk-indicators"
 import { Button } from "@/components/ui/button"
-import { Plus, History, Download } from "lucide-react"
+import { Plus, History, Download, Database } from "lucide-react"
+import { useFirestore } from "@/firebase"
+import { collection, doc, serverTimestamp } from "firebase/firestore"
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates"
+import { toast } from "@/hooks/use-toast"
 
 export default function ChemicalsPage() {
+  const db = useFirestore()
+
+  const handleSeedDemoData = () => {
+    const inventoryRef = collection(db, "chemical_inventory")
+    const demoItems = [
+      { id: "chem_001", chemicalName: "Hydrocloric Acid", casNumber: "7647-01-0", formula: "HCl", unit: "L", maxStorageCapacity: 5000, hazardStatement: "Corrosive", safetyDataSheetUrl: "https://example.com/sds/hcl", description: "Industrial grade acid", createdAt: new Date().toISOString() },
+      { id: "chem_002", chemicalName: "Ammonium Nitrate", casNumber: "6484-52-2", formula: "NH4NO3", unit: "kg", maxStorageCapacity: 25000, hazardStatement: "Oxidizing", safetyDataSheetUrl: "https://example.com/sds/an", description: "Fertilizer component / Dual-use", createdAt: new Date().toISOString() }
+    ]
+
+    demoItems.forEach(item => {
+      const docRef = doc(inventoryRef, item.id)
+      setDocumentNonBlocking(docRef, item, { merge: true })
+    })
+
+    toast({
+      title: "Data Provisioning Initiated",
+      description: "Provisioning secure chemical inventory data to Firestore.",
+    })
+  }
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full overflow-hidden">
@@ -23,6 +49,13 @@ export default function ChemicalsPage() {
                 <p className="text-xs text-muted-foreground uppercase tracking-[0.2em]">July 15, 2024 | 14:40 GMT</p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
+                <Button 
+                  onClick={handleSeedDemoData}
+                  className="bg-accent/20 text-accent border border-accent/30 hover:bg-accent/30 font-headline font-semibold gap-2 h-11 px-6"
+                >
+                  <Database className="h-4 w-4" />
+                  Provision Demo Data
+                </Button>
                 <Button className="bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 font-headline font-semibold gap-2 h-11 px-6 shadow-[0_0_15px_rgba(46,222,255,0.1)]">
                   <Plus className="h-4 w-4" />
                   Add Chemical Batch
