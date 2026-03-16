@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "driver-amelia",
+      "description": "Dr. Amelia avatar",
+      "imageUrl": "https://picsum.photos/seed/amelia/100/100",
+      "imageHint": "woman professional"
+    },
+    {
+      "id": "driver-chen",
+      "description": "L. Chen avatar",
+      "imageUrl": "https://picsum.photos/seed/chen/100/100",
+      "imageHint": "man professional"
+    },
+    {
+      "id": "driver-kumar",
+      "description": "A. Kumar avatar",
+      "imageUrl": "https://picsum.photos/seed/kumar/100/100",
+      "imageHint": "man professional"
+    },
+    {
+      "id": "driver-smith",
+      "description": "J. Smith avatar",
+      "imageUrl": "https://picsum.photos/seed/smith/100/100",
+      "imageHint": "man professional"
+    }
+  ]
 }

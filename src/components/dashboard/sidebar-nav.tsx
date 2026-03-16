@@ -1,6 +1,9 @@
+
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
   Activity,
@@ -29,20 +32,22 @@ import {
 } from "@/components/ui/sidebar"
 
 const navItems = [
-  { title: "Dashboard", icon: LayoutDashboard, isActive: true },
-  { title: "Live Monitoring", icon: Activity },
-  { title: "Chemicals", icon: Beaker },
-  { title: "Shipments", icon: Truck },
-  { title: "Hardware Monitoring", icon: Cpu },
-  { title: "AI Intelligence", icon: BrainCircuit },
-  { title: "Alerts", icon: Bell },
-  { title: "Users", icon: Users },
-  { title: "Compliance", icon: ShieldCheck },
-  { title: "Reports", icon: FileText },
-  { title: "Settings", icon: Settings },
+  { title: "Dashboard", icon: LayoutDashboard, href: "/" },
+  { title: "Live Monitoring", icon: Activity, href: "/live-monitoring" },
+  { title: "Chemicals", icon: Beaker, href: "#" },
+  { title: "Shipments", icon: Truck, href: "#" },
+  { title: "Hardware Monitoring", icon: Cpu, href: "#" },
+  { title: "AI Intelligence", icon: BrainCircuit, href: "#" },
+  { title: "Alerts", icon: Bell, href: "#" },
+  { title: "Users", icon: Users, href: "#" },
+  { title: "Compliance", icon: ShieldCheck, href: "#" },
+  { title: "Reports", icon: FileText, href: "#" },
+  { title: "Settings", icon: Settings, href: "#" },
 ]
 
 export function DashboardSidebar() {
+  const pathname = usePathname()
+
   return (
     <Sidebar collapsible="icon" className="border-r border-border/50 bg-sidebar/50 backdrop-blur-xl">
       <SidebarHeader className="h-16 flex items-center px-6">
@@ -66,14 +71,14 @@ export function DashboardSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
                     asChild 
-                    isActive={item.isActive} 
+                    isActive={pathname === item.href} 
                     tooltip={item.title}
                     className="px-6 py-6 transition-all hover:bg-white/5 data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
                   >
-                    <a href="#" className="flex items-center gap-4">
+                    <Link href={item.href} className="flex items-center gap-4">
                       <item.icon className="w-5 h-5" />
                       <span className="font-medium group-data-[collapsible=icon]:hidden">{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
