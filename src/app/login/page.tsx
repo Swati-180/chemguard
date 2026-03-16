@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -140,7 +141,9 @@ export default function LoginPage() {
    * Performs the authentication request.
    * Reads from state, trims email, and handles specific error reporting.
    */
-  const handleLogin = (portal: string) => {
+  const handleLogin = (portal: string, e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    
     const { email, password } = credentials[portal as keyof typeof credentials]
 
     if (!email || !password) {
@@ -157,7 +160,7 @@ export default function LoginPage() {
 
     signInWithEmailAndPassword(auth, trimmedEmail, password)
       .catch((error: any) => {
-        // Updated error message to match user request precisely for all portals
+        // Precise error message as requested
         toast({ 
           variant: "destructive", 
           title: "Access Denied", 
@@ -205,7 +208,7 @@ export default function LoginPage() {
           color="primary"
           badges={["ISO 27001 Certified", "Multi-Factor Auth"]}
           demoCreds="admin@chemguard.ai / admin123"
-          onLogin={() => handleLogin('admin')}
+          onLogin={(e) => handleLogin('admin', e)}
           email={credentials.admin.email}
           password={credentials.admin.password}
           onEmailChange={(v) => handleInputChange('admin', 'email', v)}
@@ -213,6 +216,8 @@ export default function LoginPage() {
           showPass={showPassword.admin}
           togglePass={() => togglePassword('admin')}
           buttonText="Login to Admin"
+          emailId="admin-email"
+          passwordId="admin-password"
         />
 
         <PortalCard 
@@ -222,7 +227,7 @@ export default function LoginPage() {
           color="accent"
           badges={["FDA Compliant Logging", "Encrypted Storage"]}
           demoCreds="pharma@chemguard.ai / pharma123"
-          onLogin={() => handleLogin('pharma')}
+          onLogin={(e) => handleLogin('pharma', e)}
           email={credentials.pharma.email}
           password={credentials.pharma.password}
           onEmailChange={(v) => handleInputChange('pharma', 'email', v)}
@@ -241,7 +246,7 @@ export default function LoginPage() {
           color="orange"
           badges={["Real-Time GPS Validated", "Checkpoint Verification"]}
           demoCreds="transport@chemguard.ai / transport123"
-          onLogin={() => handleLogin('transporter')}
+          onLogin={(e) => handleLogin('transporter', e)}
           email={credentials.transporter.email}
           password={credentials.transporter.password}
           onEmailChange={(v) => handleInputChange('transporter', 'email', v)}
@@ -249,6 +254,8 @@ export default function LoginPage() {
           showPass={showPassword.transporter}
           togglePass={() => togglePassword('transporter')}
           buttonText="Login to Vehicle"
+          emailId="transport-email"
+          passwordId="transport-password"
         />
       </div>
 
@@ -278,7 +285,7 @@ interface PortalCardProps {
   color: 'primary' | 'accent' | 'orange'
   badges: string[]
   demoCreds: string
-  onLogin: () => void
+  onLogin: (e: React.FormEvent) => void
   email: string
   password: string
   onEmailChange: (v: string) => void
@@ -286,8 +293,8 @@ interface PortalCardProps {
   showPass: boolean
   togglePass: () => void
   buttonText: string
-  emailId?: string
-  passwordId?: string
+  emailId: string
+  passwordId: string
 }
 
 function PortalCard({ 
@@ -348,7 +355,7 @@ function PortalCard({
           ))}
         </div>
 
-        <div className="space-y-4 pt-4">
+        <form onSubmit={onLogin} className="space-y-4 pt-4">
           <div className="space-y-2">
             <Label htmlFor={emailId} className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Email</Label>
             <div className="relative">
@@ -368,6 +375,7 @@ function PortalCard({
             <div className="flex justify-between items-center">
               <Label htmlFor={passwordId} className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Password</Label>
               <button 
+                type="button"
                 onClick={togglePass}
                 className="text-[10px] font-bold text-muted-foreground hover:text-white uppercase tracking-tighter flex items-center gap-1"
               >
@@ -387,18 +395,18 @@ function PortalCard({
               />
             </div>
           </div>
-        </div>
 
-        <Button 
-          onClick={onLogin}
-          className={cn(
-            "w-full h-12 font-headline font-bold uppercase tracking-widest transition-all",
-            btnMap[color]
-          )}
-        >
-          {buttonText}
-          <ArrowRight className="w-4 h-4 ml-2" />
-        </Button>
+          <Button 
+            type="submit"
+            className={cn(
+              "w-full h-12 font-headline font-bold uppercase tracking-widest transition-all mt-4",
+              btnMap[color]
+            )}
+          >
+            {buttonText}
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
+        </form>
 
         <div className="text-center space-y-1">
           <p className="text-[9px] text-muted-foreground/40 uppercase tracking-widest">Demo Credentials</p>
