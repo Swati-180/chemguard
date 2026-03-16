@@ -43,17 +43,31 @@ export default function LoginPage() {
     transporter: { email: "", password: "" }
   })
 
-  // Automatic redirect if already logged in
+  // Automatic redirect if already logged in or after successful login
   React.useEffect(() => {
     if (!isUserLoading && user) {
       const fetchRoleAndRedirect = async () => {
         try {
           const userDoc = await getDoc(doc(db, "users", user.uid))
           if (userDoc.exists()) {
-            const role = userDoc.data().role
-            if (role === 'admin') router.push("/admin/dashboard")
-            else if (role === 'pharma') router.push("/pharma/dashboard")
-            else if (role === 'transporter') router.push("/transport/dashboard")
+            const userData = userDoc.data()
+            const role = userData.role
+            
+            // Notification of success if it was a transition from no user
+            // In this setup, we just redirect.
+            
+            if (role === 'admin') {
+              router.push("/admin/dashboard")
+            } else if (role === 'pharma') {
+              router.push("/pharma/dashboard")
+            } else if (role === 'transporter') {
+              router.push("/transport/dashboard")
+            } else {
+              // Default fallback
+              router.push("/")
+            }
+          } else {
+            console.error("Authenticated but no system profile found in Firestore.")
           }
         } catch (error) {
           console.error("Session check failed:", error)
@@ -74,7 +88,7 @@ export default function LoginPage() {
     }))
   }
 
-  const handleLogin = async (portal: string) => {
+  const handleLogin = (portal: string) => {
     const { email, password } = credentials[portal as keyof typeof credentials]
 
     if (!email || !password) {
@@ -86,47 +100,33 @@ export default function LoginPage() {
       return
     }
 
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password)
-      const authenticatedUser = userCredential.user
+    // Ensure email is trimmed before login
+    const trimmedEmail = email.trim()
 
-      // Retrieve user profile from Firestore
-      const userDocRef = doc(db, "users", authenticatedUser.uid)
-      const userDoc = await getDoc(userDocRef)
-
-      if (userDoc.exists()) {
-        const userData = userDoc.data()
-        const role = userData.role
-
-        toast({ title: "Access Granted", description: `Welcome back, ${userData.name || 'authorized user'}.` })
-
-        // Role-based redirection
-        if (role === 'admin') {
-          router.push("/admin/dashboard")
-        } else if (role === 'pharma') {
-          router.push("/pharma/dashboard")
-        } else if (role === 'transporter') {
-          router.push("/transport/dashboard")
-        } else {
-          router.push("/")
+    // Non-blocking login pattern: Trigger the sign-in and handle errors.
+    // Redirection is handled by the useEffect watching the 'user' state.
+    signInWithEmailAndPassword(auth, trimmedEmail, password)
+      .then(() => {
+        toast({ title: "Authenticating", description: "Verifying security credentials..." })
+      })
+      .catch((error: any) => {
+        let errorMessage = "Invalid credentials for this security clearance level."
+        
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+          errorMessage = "The email or password entered is incorrect."
+        } else if (error.code === 'auth/invalid-email') {
+          errorMessage = "Please enter a valid email address."
         }
-      } else {
+
         toast({ 
           variant: "destructive", 
-          title: "Profile Not Found", 
-          description: "Authenticated but no system profile found." 
+          title: "Access Denied", 
+          description: error.message || errorMessage
         })
-      }
-    } catch (error: any) {
-      toast({ 
-        variant: "destructive", 
-        title: "Access Denied", 
-        description: error.message || "Invalid credentials for this security clearance level." 
       })
-    }
   }
 
-  if (isUserLoading) return null // Let global loading handle it or RoleGuard style loading
+  if (isUserLoading) return null 
 
   return (
     <div className="min-h-screen w-full bg-[#0a0f18] flex flex-col items-center justify-center p-6 relative overflow-hidden">
