@@ -42,7 +42,7 @@ const navItems = [
   { title: "AI Intelligence", icon: BrainCircuit, href: "/ai-intelligence" },
   { title: "Alerts", icon: Bell, href: "#" },
   { title: "Users", icon: Users, href: "/users" },
-  { title: "Compliance", icon: ShieldCheck, href: "#" },
+  { title: "Compliance", icon: ShieldCheck, href: "/compliance" },
   { title: "Reports", icon: FileText, href: "#" },
   { title: "Settings", icon: Settings, href: "#" },
 ]
