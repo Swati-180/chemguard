@@ -15,7 +15,8 @@ import {
   ArrowRight,
   ShieldCheck,
   Database,
-  Loader2
+  Loader2,
+  AlertCircle
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -47,9 +48,9 @@ export default function LoginPage() {
   })
 
   const [credentials, setCredentials] = React.useState({
-    admin: { email: "", password: "" },
-    pharma: { email: "", password: "" },
-    transporter: { email: "", password: "" }
+    admin: { email: "admin@chemguard.ai", password: "admin123" },
+    pharma: { email: "pharma@chemguard.ai", password: "pharma123" },
+    transporter: { email: "transport@chemguard.ai", password: "transport123" }
   })
 
   // Automatic redirect if already logged in or after successful login
@@ -70,16 +71,21 @@ export default function LoginPage() {
             } else if (role === 'transporter') {
               router.push("/transport/dashboard")
             } else {
-              router.push("/")
+              // User has no valid role assigned
+              toast({
+                variant: "destructive",
+                title: "Invalid Role",
+                description: "Your account does not have an authorized role assigned."
+              })
+              await signOut(auth)
             }
           } else {
             // User exists in Auth but has no profile in Firestore
             toast({
               variant: "destructive",
-              title: "Profile Not Found",
-              description: "Account authenticated but system profile missing. Initializing auto-repair..."
+              title: "Profile Missing",
+              description: "Auth session active but system profile not found. Please click 'Initialize Demo Accounts'."
             })
-            // Sign out to allow fresh login/init
             await signOut(auth)
           }
         } catch (error) {
@@ -101,26 +107,30 @@ export default function LoginPage() {
       { email: "transport@chemguard.ai", password: "transport123", role: "transporter", name: "K. Kumar" }
     ]
 
-    toast({ title: "System Initialization", description: "Provisioning secure cloud resources..." })
+    toast({ title: "System Initialization", description: "Configuring security layers..." })
 
     try {
       for (const u of demoUsers) {
         let uid = ""
         try {
-          // Attempt to create auth user
-          const userCredential = await createUserWithEmailAndPassword(auth, u.email, u.password)
+          // 1. Try to sign in first to verify existing credentials
+          const userCredential = await signInWithEmailAndPassword(auth, u.email, u.password)
           uid = userCredential.user.uid
-        } catch (e: any) {
-          if (e.code === 'auth/email-already-in-use') {
-            // User exists, sign in to ensure we have a session to write the profile
-            const userCredential = await signInWithEmailAndPassword(auth, u.email, u.password)
+        } catch (signInError: any) {
+          if (signInError.code === 'auth/user-not-found') {
+            // 2. If user doesn't exist, create them
+            const userCredential = await createUserWithEmailAndPassword(auth, u.email, u.password)
             uid = userCredential.user.uid
+          } else if (signInError.code === 'auth/wrong-password') {
+            // User exists but password changed. In a prototype, we'll just notify.
+            console.warn(`User ${u.email} already exists with a different password. Skipping profile update.`)
+            continue 
           } else {
-            throw e
+            throw signInError
           }
         }
 
-        // Store/Update profile in 'users' collection (self-healing)
+        // 3. Store/Update profile in 'users' collection while signed in
         await setDoc(doc(db, "users", uid), {
           id: uid,
           name: u.name,
@@ -129,14 +139,17 @@ export default function LoginPage() {
           createdAt: new Date().toISOString()
         }, { merge: true })
 
-        // Ensure role check collections are populated
-        if (u.role === 'admin') await setDoc(doc(db, "roles_admin", uid), { active: true })
-        if (u.role === 'pharma') await setDoc(doc(db, "roles_pharma", uid), { active: true })
-        if (u.role === 'transporter') await setDoc(doc(db, "roles_transporter", uid), { active: true })
+        // 4. Populate role-specific check collections for security rules
+        const roleCollMap: Record<string, string> = {
+          admin: "roles_admin",
+          pharma: "roles_pharma",
+          transporter: "roles_transporter"
+        }
+        await setDoc(doc(db, roleCollMap[u.role], uid), { active: true }, { merge: true })
       }
       
       await signOut(auth)
-      toast({ title: "Setup Success", description: "Demo environment fully synchronized." })
+      toast({ title: "Setup Success", description: "Demo environment fully synchronized. You may now log in." })
     } catch (error: any) {
       toast({ variant: "destructive", title: "Initialization Error", description: error.message })
     } finally {
@@ -155,7 +168,7 @@ export default function LoginPage() {
     }))
   }
 
-  const handleLogin = (portal: string, e?: React.FormEvent) => {
+  const handleLogin = async (portal: string, e?: React.FormEvent) => {
     if (e) e.preventDefault()
     
     const { email, password } = credentials[portal as keyof typeof credentials]
@@ -170,16 +183,18 @@ export default function LoginPage() {
     }
 
     const trimmedEmail = email.trim()
-    toast({ title: "Verifying Identity", description: "Establishing encrypted satellite link..." })
+    toast({ title: "Verifying Identity", description: "Connecting to secure hub..." })
 
-    signInWithEmailAndPassword(auth, trimmedEmail, password)
-      .catch((error: any) => {
-        toast({ 
-          variant: "destructive", 
-          title: "Access Denied", 
-          description: "Access Denied: The email or password entered is incorrect."
-        })
+    try {
+      await signInWithEmailAndPassword(auth, trimmedEmail, password)
+    } catch (error: any) {
+      console.error("Login attempt failed:", error.code)
+      toast({ 
+        variant: "destructive", 
+        title: "Access Denied", 
+        description: "Access Denied: The email or password entered is incorrect."
       })
+    }
   }
 
   if (isUserLoading || isVerifying) {
@@ -283,16 +298,25 @@ export default function LoginPage() {
         />
       </div>
 
-      <div className="mt-12 relative z-10">
-        <Button 
-          variant="outline" 
-          disabled={isProvisioning}
-          onClick={handleProvisionDemoData}
-          className="border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 font-headline font-bold uppercase tracking-widest text-[10px] h-10 px-6 gap-2"
-        >
-          <Database className={cn("w-3.5 h-3.5", isProvisioning && "animate-spin")} />
-          {isProvisioning ? "Synchronizing Cloud..." : "Initialize Demo Accounts"}
-        </Button>
+      <div className="mt-12 flex flex-col items-center gap-4 relative z-10">
+        <div className="p-4 bg-white/5 border border-white/10 rounded-2xl max-w-md text-center">
+          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest flex items-center justify-center gap-2 mb-2">
+            <AlertCircle className="w-3 h-3 text-orange-400" />
+            First Time User?
+          </p>
+          <p className="text-[11px] text-white/60 leading-relaxed mb-4">
+            If you encounter "Access Denied", please click the button below to initialize the demo security profiles in the cloud.
+          </p>
+          <Button 
+            variant="outline" 
+            disabled={isProvisioning}
+            onClick={handleProvisionDemoData}
+            className="w-full border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 font-headline font-bold uppercase tracking-widest text-[10px] h-12 px-6 gap-2"
+          >
+            <Database className={cn("w-4 h-4", isProvisioning && "animate-spin")} />
+            {isProvisioning ? "Synchronizing Cloud Hub..." : "Initialize Demo Accounts"}
+          </Button>
+        </div>
       </div>
 
       <footer className="mt-16 text-[10px] text-muted-foreground uppercase tracking-[0.2em] relative z-10 opacity-50">
