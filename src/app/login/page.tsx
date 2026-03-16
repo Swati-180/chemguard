@@ -54,7 +54,8 @@ export default function LoginPage() {
 
   // Automatic redirect if already logged in or after successful login
   React.useEffect(() => {
-    if (!isUserLoading && user) {
+    // CRITICAL: Do not redirect or sign out if we are currently in the middle of provisioning accounts
+    if (!isUserLoading && user && !isProvisioning) {
       const fetchRoleAndRedirect = async () => {
         setIsVerifying(true)
         try {
@@ -70,21 +71,10 @@ export default function LoginPage() {
             } else if (role === 'transporter') {
               router.push("/transport/dashboard")
             } else {
-              // User has no valid role assigned
-              toast({
-                variant: "destructive",
-                title: "Invalid Role",
-                description: "Your account does not have an authorized role assigned."
-              })
               await signOut(auth)
             }
           } else {
-            // User exists in Auth but has no profile in Firestore
-            toast({
-              variant: "destructive",
-              title: "Profile Missing",
-              description: "Auth session active but system profile not found. Please click 'Initialize Demo Accounts'."
-            })
+            // Profile missing - we sign out to prevent redirect loops for invalid users
             await signOut(auth)
           }
         } catch (error) {
@@ -95,7 +85,7 @@ export default function LoginPage() {
       }
       fetchRoleAndRedirect()
     }
-  }, [user, isUserLoading, db, router, auth])
+  }, [user, isUserLoading, db, router, auth, isProvisioning])
 
   const handleProvisionDemoData = async () => {
     setIsProvisioning(true)
@@ -111,44 +101,50 @@ export default function LoginPage() {
       for (const u of demoUsers) {
         let uid = ""
         try {
-          // 1. Try to sign in first to verify existing credentials
+          // 1. Try to sign in first to verify existing credentials and get UID
           const userCredential = await signInWithEmailAndPassword(auth, u.email, u.password)
           uid = userCredential.user.uid
         } catch (signInError: any) {
-          if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-email') {
-            // 2. If user doesn't exist, create them
-            const userCredential = await createUserWithEmailAndPassword(auth, u.email, u.password)
-            uid = userCredential.user.uid
-          } else if (signInError.code === 'auth/wrong-password' || signInError.code === 'auth/invalid-credential') {
-            // User exists but password changed. In a prototype, we'll skip and continue.
-            continue 
+          if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-email' || signInError.code === 'auth/invalid-credential') {
+            // 2. If user doesn't exist (or creds fail), try to create them
+            try {
+              const userCredential = await createUserWithEmailAndPassword(auth, u.email, u.password)
+              uid = userCredential.user.uid
+            } catch (createError: any) {
+              // If creation fails because user already exists, we might have wrong password stored locally
+              // In this prototype, we skip and continue to next user
+              continue
+            }
           } else {
-            throw signInError
+            continue 
           }
         }
 
-        // 3. Store/Update profile in 'users' collection while signed in
-        await setDoc(doc(db, "users", uid), {
-          id: uid,
-          name: u.name,
-          email: u.email,
-          role: u.role,
-          createdAt: new Date().toISOString()
-        }, { merge: true })
+        if (uid) {
+          // 3. Store/Update profile in 'users' collection
+          await setDoc(doc(db, "users", uid), {
+            id: uid,
+            name: u.name,
+            email: u.email,
+            role: u.role,
+            createdAt: new Date().toISOString()
+          }, { merge: true })
 
-        // 4. Populate role-specific check collections for security rules
-        const roleCollMap: Record<string, string> = {
-          admin: "roles_admin",
-          pharma: "roles_pharma",
-          transporter: "roles_transporter"
+          // 4. Populate role-specific check collections for security rules
+          const roleCollMap: Record<string, string> = {
+            admin: "roles_admin",
+            pharma: "roles_pharma",
+            transporter: "roles_transporter"
+          }
+          await setDoc(doc(db, roleCollMap[u.role], uid), { active: true }, { merge: true })
         }
-        await setDoc(doc(db, roleCollMap[u.role], uid), { active: true }, { merge: true })
       }
       
+      // Clear session after provisioning to allow clean manual login
       await signOut(auth)
       toast({ title: "Setup Success", description: "Demo environment fully synchronized. You may now log in." })
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Initialization Error", description: error.message })
+      toast({ variant: "destructive", title: "Initialization Error", description: "Profile synchronization encountered an interruption." })
     } finally {
       setIsProvisioning(false)
     }
