@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -37,7 +38,7 @@ const navItems = [
   { title: "Usage Logs", icon: History, href: "/pharma/usage-logs" },
   { title: "Compliance Logs", icon: ShieldCheck, href: "/pharma/compliance", badge: "14" },
   { title: "Alerts", icon: Bell, href: "/pharma/alerts", alert: true },
-  { title: "Reports", icon: FileText, href: "#" },
+  { title: "Reports", icon: FileText, href: "/pharma/reports" },
   { title: "Settings", icon: Settings, href: "#" },
 ]
 
