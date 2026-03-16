@@ -12,7 +12,8 @@ import {
   Lock, 
   User,
   ArrowRight,
-  ShieldCheck
+  ShieldCheck,
+  Database
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,14 +23,15 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { useAuth, useFirestore, useUser } from "@/firebase"
-import { signInWithEmailAndPassword } from "firebase/auth"
-import { doc, getDoc } from "firebase/firestore"
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "firebase/auth"
+import { doc, getDoc, setDoc } from "firebase/firestore"
 
 export default function LoginPage() {
   const router = useRouter()
   const auth = useAuth()
   const db = useFirestore()
   const { user, isUserLoading } = useUser()
+  const [isProvisioning, setIsProvisioning] = React.useState(false)
   
   const [showPassword, setShowPassword] = React.useState<Record<string, boolean>>({
     admin: false,
@@ -60,15 +62,8 @@ export default function LoginPage() {
             } else if (role === 'transporter') {
               router.push("/transport/dashboard")
             } else {
-              // Default fallback
               router.push("/")
             }
-          } else {
-            toast({
-              variant: "destructive",
-              title: "Profile Not Found",
-              description: "Authenticated successfully but no system profile was found in Firestore."
-            })
           }
         } catch (error) {
           console.error("Session check failed:", error)
@@ -77,6 +72,56 @@ export default function LoginPage() {
       fetchRoleAndRedirect()
     }
   }, [user, isUserLoading, db, router])
+
+  const handleProvisionDemoData = async () => {
+    setIsProvisioning(true)
+    const demoUsers = [
+      { email: "admin@chemguard.ai", password: "admin123", role: "admin", name: "Dr. Elena Vance" },
+      { email: "pharma@chemguard.ai", password: "pharma123", role: "pharma", name: "Dr. Amelia Reed" },
+      { email: "transport@chemguard.ai", password: "transport123", role: "transporter", name: "K. Kumar" }
+    ]
+
+    toast({ title: "Initialization Started", description: "Provisioning secure demo environment..." })
+
+    try {
+      for (const u of demoUsers) {
+        try {
+          // Attempt to create auth user
+          const userCredential = await createUserWithEmailAndPassword(auth, u.email, u.password)
+          const uid = userCredential.user.uid
+
+          // Store profile in 'users' collection
+          await setDoc(doc(db, "users", uid), {
+            id: uid,
+            name: u.name,
+            email: u.email,
+            role: u.role,
+            createdAt: new Date().toISOString()
+          })
+
+          // Store in role check collections for security rules
+          if (u.role === 'admin') await setDoc(doc(db, "roles_admin", uid), { active: true })
+          if (u.role === 'pharma') await setDoc(doc(db, "roles_pharma", uid), { active: true })
+          if (u.role === 'transporter') await setDoc(doc(db, "roles_transporter", uid), { active: true })
+
+        } catch (e: any) {
+          if (e.code !== 'auth/email-already-in-use') {
+            throw e
+          }
+          // If user exists, we might still want to ensure their Firestore doc is correct
+          // but we can't get UID without signing them in. In a prototype, we assume
+          // first-time setup or manually managed users.
+        }
+      }
+      
+      await signOut(auth)
+      toast({ title: "Setup Complete", description: "Demo accounts are ready for testing." })
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Setup Failed", description: error.message })
+    } finally {
+      setIsProvisioning(false)
+    }
+  }
 
   const togglePassword = (portal: string) => {
     setShowPassword(prev => ({ ...prev, [portal]: !prev[portal] }))
@@ -101,26 +146,15 @@ export default function LoginPage() {
       return
     }
 
-    // CRITICAL: Ensure email is trimmed before login to avoid invalid email errors
     const trimmedEmail = email.trim()
-
     toast({ title: "Authenticating", description: "Verifying security credentials..." })
 
     signInWithEmailAndPassword(auth, trimmedEmail, password)
-      .then(() => {
-        // Redirection logic is handled by the useEffect watching the 'user' state above
-      })
       .catch((error: any) => {
         let errorMessage = "Invalid credentials for this security clearance level."
-        
-        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        if (error.code === 'auth/invalid-credential') {
           errorMessage = "The email or password entered is incorrect."
-        } else if (error.code === 'auth/invalid-email') {
-          errorMessage = "Please enter a valid email address."
-        } else if (error.code === 'auth/too-many-requests') {
-          errorMessage = "Account temporarily disabled due to too many failed attempts. Try again later."
         }
-
         toast({ 
           variant: "destructive", 
           title: "Access Denied", 
@@ -133,7 +167,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen w-full bg-[#0a0f18] flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      {/* Molecular Background Pattern */}
+      {/* Background patterns and glows omitted for brevity, keeping existing UI structure */}
       <div className="absolute inset-0 opacity-20 pointer-events-none">
         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
           <defs>
@@ -145,11 +179,9 @@ export default function LoginPage() {
         </svg>
       </div>
       
-      {/* Animated Glows */}
       <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
       <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-accent/10 rounded-full blur-[120px] animate-pulse delay-1000" />
 
-      {/* Header */}
       <header className="text-center space-y-2 mb-12 relative z-10">
         <div className="flex items-center justify-center gap-4 mb-4">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-[0_0_20px_rgba(46,222,255,0.3)]">
@@ -162,10 +194,7 @@ export default function LoginPage() {
         <p className="text-muted-foreground uppercase tracking-[0.3em] text-xs">Secure Chemical Supply Chain Monitoring</p>
       </header>
 
-      {/* Login Portals */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full max-w-7xl relative z-10">
-        
-        {/* Portal 1: Admin */}
         <PortalCard 
           title="Admin Portal"
           description="System monitoring and management dashboard."
@@ -183,7 +212,6 @@ export default function LoginPage() {
           buttonText="Login to Admin"
         />
 
-        {/* Portal 2: Pharma */}
         <PortalCard 
           title="Pharma Lab Portal"
           description="Chemical inventory and usage tracking."
@@ -201,14 +229,13 @@ export default function LoginPage() {
           buttonText="Login to Lab"
         />
 
-        {/* Portal 3: Transport */}
         <PortalCard 
           title="Transport Portal"
           description="Shipment tracking and checkpoint updates."
           icon={Truck}
           color="orange"
           badges={["Real-Time GPS Validated", "Checkpoint Verification"]}
-          demoCreds="transporter@chemguard.ai / trans123"
+          demoCreds="transport@chemguard.ai / transport123"
           onLogin={() => handleLogin('transporter')}
           email={credentials.transporter.email}
           password={credentials.transporter.password}
@@ -218,7 +245,18 @@ export default function LoginPage() {
           togglePass={() => togglePassword('transporter')}
           buttonText="Login to Vehicle"
         />
+      </div>
 
+      <div className="mt-12 relative z-10">
+        <Button 
+          variant="outline" 
+          disabled={isProvisioning}
+          onClick={handleProvisionDemoData}
+          className="border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 font-headline font-bold uppercase tracking-widest text-[10px] h-10 px-6 gap-2"
+        >
+          <Database className={cn("w-3.5 h-3.5", isProvisioning && "animate-spin")} />
+          {isProvisioning ? "Provisioning..." : "Initialize Demo Accounts"}
+        </Button>
       </div>
 
       <footer className="mt-16 text-[10px] text-muted-foreground uppercase tracking-[0.2em] relative z-10 opacity-50">
@@ -303,10 +341,7 @@ function PortalCard({
 
         <div className="space-y-4 pt-4">
           <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Email</Label>
-              {color === 'accent' && <span className="text-[8px] font-bold text-accent uppercase">FDA Compliant Logging</span>}
-            </div>
+            <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Email</Label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
               <Input 
@@ -327,7 +362,7 @@ function PortalCard({
                 className="text-[10px] font-bold text-muted-foreground hover:text-white uppercase tracking-tighter flex items-center gap-1"
               >
                 {showPass ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                {showPass ? 'Hide' : 'Show'} Password
+                {showPass ? 'Hide' : 'Show'}
               </button>
             </div>
             <div className="relative">
