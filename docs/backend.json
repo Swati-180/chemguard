@@ -1,168 +1,531 @@
-
 {
   "entities": {
-    "UserProfile": {
+    "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "UserProfile",
+      "title": "User",
       "type": "object",
-      "description": "Represents a user profile within the ChemGuard AI system.",
+      "description": "Represents an administrative user with access to the ChemGuard AI dashboard. Does not store authentication credentials, which are handled by an external system.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the UserProfile entity (matching Firebase Auth UID)."
+          "description": "Unique identifier for the User entity."
         },
-        "name": {
+        "firstName": {
           "type": "string",
-          "description": "The full name of the user."
+          "description": "The first name of the user."
         },
-        "username": {
+        "lastName": {
           "type": "string",
-          "description": "Unique username for display."
+          "description": "The last name of the user."
         },
         "email": {
           "type": "string",
-          "description": "Email address of the user.",
+          "description": "The email address of the user.",
           "format": "email"
         },
         "role": {
           "type": "string",
-          "description": "User's role in the system.",
-          "enum": ["admin", "pharma", "transporter"]
+          "description": "The role of the user within the system (e.g., 'Admin', 'Dispatcher', 'Monitor')."
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp when the profile was created.",
+          "description": "Timestamp when the user account was created.",
+          "format": "date-time"
+        },
+        "lastLoginAt": {
+          "type": "string",
+          "description": "Timestamp of the user's last login.",
           "format": "date-time"
         }
       },
       "required": [
         "id",
-        "name",
+        "firstName",
+        "lastName",
         "email",
         "role",
         "createdAt"
+      ]
+    },
+    "Driver": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Driver",
+      "type": "object",
+      "description": "Represents a vehicle driver responsible for shipments.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Driver entity."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The first name of the driver."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The last name of the driver."
+        },
+        "contactNumber": {
+          "type": "string",
+          "description": "The primary contact number for the driver."
+        },
+        "licenseNumber": {
+          "type": "string",
+          "description": "The driver's professional license number."
+        },
+        "currentVehicleId": {
+          "type": "string",
+          "description": "Reference to the Vehicle currently assigned to this driver. (Relationship: Vehicle 1:1 Driver)"
+        },
+        "status": {
+          "type": "string",
+          "description": "Current operational status of the driver (e.g., 'Available', 'On Duty', 'Off Duty')."
+        }
+      },
+      "required": [
+        "id",
+        "firstName",
+        "lastName",
+        "contactNumber",
+        "licenseNumber",
+        "status"
+      ]
+    },
+    "Location": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Location",
+      "type": "object",
+      "description": "Represents a geographical point or address used for origins, destinations, checkpoints, and event locations.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Location entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "A common name for the location (e.g., 'Warehouse A', 'Port of Rotterdam')."
+        },
+        "address": {
+          "type": "string",
+          "description": "The full street address of the location."
+        },
+        "city": {
+          "type": "string",
+          "description": "The city of the location."
+        },
+        "state": {
+          "type": "string",
+          "description": "The state or province of the location."
+        },
+        "country": {
+          "type": "string",
+          "description": "The country of the location."
+        },
+        "postalCode": {
+          "type": "string",
+          "description": "The postal code of the location."
+        },
+        "latitude": {
+          "type": "number",
+          "description": "The geographical latitude of the location."
+        },
+        "longitude": {
+          "type": "number",
+          "description": "The geographical longitude of the location."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "address",
+        "city",
+        "state",
+        "country",
+        "latitude",
+        "longitude"
+      ]
+    },
+    "Vehicle": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Vehicle",
+      "type": "object",
+      "description": "Represents a transport vehicle (e.g., truck) used for shipments, including its status and assigned driver.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Vehicle entity."
+        },
+        "licensePlate": {
+          "type": "string",
+          "description": "The vehicle's license plate number."
+        },
+        "make": {
+          "type": "string",
+          "description": "The manufacturer of the vehicle."
+        },
+        "model": {
+          "type": "string",
+          "description": "The model of the vehicle."
+        },
+        "year": {
+          "type": "number",
+          "description": "The manufacturing year of the vehicle."
+        },
+        "driverId": {
+          "type": "string",
+          "description": "Reference to the Driver currently operating this vehicle. (Relationship: Driver 1:1 Vehicle)"
+        },
+        "currentLocation": {
+          "type": "string",
+          "description": "Current geographical coordinates of the vehicle (e.g., 'latitude,longitude')."
+        },
+        "locationDescription": {
+          "type": "string",
+          "description": "A human-readable description of the vehicle's current location."
+        },
+        "healthStatus": {
+          "type": "string",
+          "description": "The overall health status of the vehicle (e.g., 'Good', 'Warning', 'Critical')."
+        },
+        "movementStatus": {
+          "type": "string",
+          "description": "Current movement status of the vehicle (e.g., 'Moving', 'Stopped', 'Idle')."
+        },
+        "lastReportedAt": {
+          "type": "string",
+          "description": "Timestamp when the vehicle's status or location was last reported.",
+          "format": "date-time"
+        },
+        "iotDeviceIds": {
+          "type": "array",
+          "description": "References to IoTDevice entities installed on this vehicle. (Relationship: IoTDevice N:N Vehicle)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "licensePlate",
+        "make",
+        "model",
+        "year",
+        "currentLocation",
+        "locationDescription",
+        "healthStatus",
+        "movementStatus",
+        "lastReportedAt"
+      ]
+    },
+    "Shipment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Shipment",
+      "type": "object",
+      "description": "Represents a single logistical movement of chemical batches from an origin to a destination.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Shipment entity."
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the shipment (e.g., 'Scheduled', 'In Transit', 'Delayed', 'Delivered', 'Cancelled')."
+        },
+        "originLocationId": {
+          "type": "string",
+          "description": "Reference to the Location entity where the shipment originated. (Relationship: Location 1:N Shipment)"
+        },
+        "destinationLocationId": {
+          "type": "string",
+          "description": "Reference to the Location entity where the shipment is destined. (Relationship: Location 1:N Shipment)"
+        },
+        "currentLocation": {
+          "type": "string",
+          "description": "Current geographical coordinates of the shipment (e.g., 'latitude,longitude')."
+        },
+        "locationDescription": {
+          "type": "string",
+          "description": "A human-readable description of the shipment's current location."
+        },
+        "vehicleId": {
+          "type": "string",
+          "description": "Reference to the Vehicle assigned to this shipment. (Relationship: Vehicle 1:N Shipment)"
+        },
+        "driverId": {
+          "type": "string",
+          "description": "Reference to the Driver responsible for this shipment. (Relationship: Driver 1:N Shipment)"
+        },
+        "scheduledDeparture": {
+          "type": "string",
+          "description": "Planned date and time for shipment departure.",
+          "format": "date-time"
+        },
+        "actualDeparture": {
+          "type": "string",
+          "description": "Actual date and time of shipment departure.",
+          "format": "date-time"
+        },
+        "estimatedArrival": {
+          "type": "string",
+          "description": "Estimated date and time for shipment arrival.",
+          "format": "date-time"
+        },
+        "actualArrival": {
+          "type": "string",
+          "description": "Actual date and time of shipment arrival.",
+          "format": "date-time"
+        },
+        "chemicalBatchIds": {
+          "type": "array",
+          "description": "References to ChemicalBatch entities included in this shipment. (Relationship: ChemicalBatch N:N Shipment)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "routePath": {
+          "type": "array",
+          "description": "An ordered array of geographical coordinates representing the planned or actual route of the shipment. Each item is a string 'latitude,longitude'.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "lastUpdateAt": {
+          "type": "string",
+          "description": "Timestamp when the shipment's data was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "originLocationId",
+        "destinationLocationId",
+        "vehicleId",
+        "driverId",
+        "scheduledDeparture",
+        "estimatedArrival",
+        "chemicalBatchIds",
+        "lastUpdateAt"
       ]
     },
     "ChemicalBatch": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ChemicalBatch",
       "type": "object",
-      "description": "Represents a specific batch of a chemical.",
+      "description": "Represents a specific batch of chemicals, detailing its properties and hazard information.",
       "properties": {
-        "id": { "type": "string" },
-        "batchId": { "type": "string" },
-        "chemicalName": { "type": "string" },
-        "quantity": { "type": "number" },
-        "unit": { "type": "string" },
-        "productionDate": { "type": "string", format: "date" },
-        "storageLocation": { "type": "string" },
-        "status": { "type": "string" },
-        "createdBy": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ChemicalBatch entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The common name or identifier for the chemical batch (e.g., 'Sulfuric Acid Batch A123')."
+        },
+        "chemicalType": {
+          "type": "string",
+          "description": "The type or category of the chemical (e.g., 'Corrosive', 'Flammable', 'Toxic')."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The quantity of the chemical in this batch."
+        },
+        "unit": {
+          "type": "string",
+          "description": "The unit of measurement for the quantity (e.g., 'liters', 'kg', 'gallons')."
+        },
+        "productionDate": {
+          "type": "string",
+          "description": "Date when the chemical batch was produced.",
+          "format": "date"
+        },
+        "expirationDate": {
+          "type": "string",
+          "description": "Date when the chemical batch expires.",
+          "format": "date"
+        },
+        "hazmatClassification": {
+          "type": "string",
+          "description": "Hazardous materials classification for the batch (e.g., 'UN1830')."
+        },
+        "storageConditions": {
+          "type": "string",
+          "description": "Required storage conditions for the chemical batch (e.g., 'Cool, dry place')."
+        }
       },
-      "required": ["id", "batchId", "chemicalName", "quantity", "unit", "productionDate", "storageLocation", "status", "createdBy", "createdAt"]
+      "required": [
+        "id",
+        "name",
+        "chemicalType",
+        "quantity",
+        "unit",
+        "productionDate",
+        "hazmatClassification"
+      ]
     },
-    "ChemicalInventory": {
+    "IoTDevice": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ChemicalInventory",
+      "title": "IoTDevice",
       "type": "object",
-      "description": "Defines the properties of a chemical item in inventory.",
+      "description": "Represents an Internet of Things device (sensor, GPS unit, camera) deployed for monitoring purposes.",
       "properties": {
-        "id": { "type": "string" },
-        "chemicalName": { "type": "string" },
-        "batchId": { "type": "string" },
-        "manufacturer": { "type": "string" },
-        "quantity": { "type": "number" },
-        "storageLocation": { "type": "string" },
-        "expiryDate": { "type": "string", "format": "date" },
-        "status": { "type": "string" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the IoTDevice entity."
+        },
+        "serialNumber": {
+          "type": "string",
+          "description": "The unique serial number of the IoT device."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of sensor or device (e.g., 'GPS', 'Temperature Sensor', 'Tamper Sensor', 'Camera')."
+        },
+        "status": {
+          "type": "string",
+          "description": "Current operational status of the device (e.g., 'Online', 'Offline', 'Error', 'Low Battery')."
+        },
+        "assignedToVehicleId": {
+          "type": "string",
+          "description": "Reference to the Vehicle entity to which this device is assigned. (Relationship: Vehicle 1:N IoTDevice)"
+        },
+        "lastReportedAt": {
+          "type": "string",
+          "description": "Timestamp when the device last reported data.",
+          "format": "date-time"
+        },
+        "currentLocation": {
+          "type": "string",
+          "description": "Current geographical coordinates reported by the device (e.g., 'latitude,longitude')."
+        }
       },
-      "required": ["id", "chemicalName", "batchId", "manufacturer", "quantity", "storageLocation", "expiryDate", "status"]
+      "required": [
+        "id",
+        "serialNumber",
+        "type",
+        "status",
+        "lastReportedAt"
+      ]
     },
-    "ShipmentRequest": {
+    "TransportAlert": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ShipmentRequest",
+      "title": "TransportAlert",
       "type": "object",
-      "description": "Manages chemical shipment requests.",
+      "description": "Represents an alert generated due to an anomaly or incident related to a shipment or vehicle.",
       "properties": {
-        "id": { "type": "string" },
-        "shipmentId": { "type": "string" },
-        "batchId": { "type": "string" },
-        "destination": { "type": "string" },
-        "transporter": { "type": "string" },
-        "status": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the TransportAlert entity."
+        },
+        "shipmentId": {
+          "type": "string",
+          "description": "Reference to the Shipment entity related to this alert. (Relationship: Shipment 1:N TransportAlert)"
+        },
+        "vehicleId": {
+          "type": "string",
+          "description": "Reference to the Vehicle entity related to this alert. (Relationship: Vehicle 1:N TransportAlert)"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of alert (e.g., 'Temperature Excursion', 'Route Deviation', 'Tamper Detected', 'Geo-fence Breach', 'Vehicle Malfunction')."
+        },
+        "severity": {
+          "type": "string",
+          "description": "The severity level of the alert (e.g., 'Critical', 'Warning', 'Info')."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp when the alert was generated.",
+          "format": "date-time"
+        },
+        "location": {
+          "type": "string",
+          "description": "Geographical coordinates where the alert originated (e.g., 'latitude,longitude')."
+        },
+        "locationDescription": {
+          "type": "string",
+          "description": "A human-readable description of the alert's location."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current resolution status of the alert (e.g., 'New', 'Acknowledged', 'Resolved', 'False Positive')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the alert incident."
+        },
+        "assignedToUserId": {
+          "type": "string",
+          "description": "Reference to the User entity who is assigned to resolve this alert. (Relationship: User 1:N TransportAlert)"
+        }
       },
-      "required": ["id", "shipmentId", "batchId", "destination", "transporter", "status", "createdAt"]
+      "required": [
+        "id",
+        "type",
+        "severity",
+        "timestamp",
+        "location",
+        "status",
+        "description"
+      ]
     },
-    "UsageLog": {
+    "ComplianceRecord": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "UsageLog",
+      "title": "ComplianceRecord",
       "type": "object",
-      "description": "Logs movements and consumption of chemicals.",
+      "description": "Records details about compliance checks, audits, or regulatory adherence for shipments or vehicles.",
       "properties": {
-        "id": { "type": "string" },
-        "chemicalName": { "type": "string" },
-        "batchId": { "type": "string" },
-        "quantityUsed": { "type": "string" },
-        "purpose": { "type": "string" },
-        "technician": { "type": "string" },
-        "date": { "type": "string", "format": "date-time" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ComplianceRecord entity."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of compliance record (e.g., 'Safety Audit', 'Regulatory Inspection', 'Internal Check')."
+        },
+        "dateRecorded": {
+          "type": "string",
+          "description": "The date when the compliance record was created or the event occurred.",
+          "format": "date"
+        },
+        "score": {
+          "type": "number",
+          "description": "A numerical score indicating the level of compliance, if applicable (e.g., 0-100)."
+        },
+        "status": {
+          "type": "string",
+          "description": "The overall status of compliance (e.g., 'Compliant', 'Non-Compliant', 'Pending Review')."
+        },
+        "details": {
+          "type": "string",
+          "description": "Detailed notes or findings from the compliance check."
+        },
+        "relatedShipmentId": {
+          "type": "string",
+          "description": "Reference to a Shipment entity if this record is shipment-specific. (Relationship: Shipment 1:N ComplianceRecord)"
+        },
+        "relatedVehicleId": {
+          "type": "string",
+          "description": "Reference to a Vehicle entity if this record is vehicle-specific. (Relationship: Vehicle 1:N ComplianceRecord)"
+        },
+        "auditedByUserId": {
+          "type": "string",
+          "description": "Reference to the User who conducted or recorded the compliance check. (Relationship: User 1:N ComplianceRecord)"
+        }
       },
-      "required": ["id", "chemicalName", "batchId", "quantityUsed", "purpose", "technician", "date"]
-    },
-    "Alert": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Alert",
-      "type": "object",
-      "description": "Stores system alerts.",
-      "properties": {
-        "id": { "type": "string" },
-        "alertIdentifier": { "type": "string" },
-        "alertType": { "type": "string" },
-        "location": { "type": "string" },
-        "severity": { "type": "string" },
-        "status": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "alertIdentifier", "alertType", "location", "severity", "status", "timestamp"]
-    },
-    "HardwareDevice": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "HardwareDevice",
-      "type": "object",
-      "description": "Represents an IoT device monitored by the system.",
-      "properties": {
-        "id": { "type": "string" },
-        "deviceId": { "type": "string" },
-        "deviceType": { "type": "string" },
-        "location": { "type": "string" },
-        "status": { "type": "string" },
-        "lastSignal": { "type": "string", "format": "date-time" },
-        "alertStatus": { "type": "string" }
-      },
-      "required": ["id", "deviceId", "deviceType", "location", "status", "lastSignal", "alertStatus"]
-    },
-    "ComplianceLog": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ComplianceLog",
-      "type": "object",
-      "description": "Logs for regulatory and safety compliance events.",
-      "properties": {
-        "id": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" },
-        "user": { "type": "string" },
-        "action": { "type": "string" },
-        "batchId": { "type": "string" },
-        "location": { "type": "string" },
-        "status": { "type": "string" }
-      },
-      "required": ["id", "timestamp", "user", "action", "status"]
+      "required": [
+        "id",
+        "type",
+        "dateRecorded",
+        "status",
+        "details"
+      ]
     }
   },
   "auth": {
     "providers": [
-      "password"
+      "password",
+      "anonymous"
     ]
   },
   "firestore": {
@@ -170,63 +533,148 @@
       {
         "path": "/users/{userId}",
         "definition": {
-          "entityName": "UserProfile",
-          "schema": { "$ref": "#/backend/entities/UserProfile" },
-          "description": "User profiles. Accessible by owner or admins."
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores administrative user profiles and their assigned roles for Dashboard Based Access Control (DBAC). Users can manage their own profile, and higher roles can manage others. Includes 'role' field for authorization.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
         }
       },
       {
-        "path": "/roles_admin/{userId}",
+        "path": "/drivers/{driverId}",
         "definition": {
-          "entityName": "RoleAdmin",
-          "schema": { "$ref": "#/backend/entities/UserProfile" },
-          "description": "Admin role existence check."
+          "entityName": "Driver",
+          "schema": {
+            "$ref": "#/backend/entities/Driver"
+          },
+          "description": "Master data collection for all registered drivers. Read-only for general dashboard monitoring, write access restricted by user roles.",
+          "params": [
+            {
+              "name": "driverId",
+              "description": "The unique identifier of the driver."
+            }
+          ]
         }
       },
       {
-        "path": "/roles_pharma/{userId}",
+        "path": "/locations/{locationId}",
         "definition": {
-          "entityName": "RolePharma",
-          "schema": { "$ref": "#/backend/entities/UserProfile" },
-          "description": "Pharma role existence check."
+          "entityName": "Location",
+          "schema": {
+            "$ref": "#/backend/entities/Location"
+          },
+          "description": "Master data collection for all defined locations (origins, destinations, checkpoints). Read-only for general dashboard monitoring, write access restricted by user roles.",
+          "params": [
+            {
+              "name": "locationId",
+              "description": "The unique identifier of the location."
+            }
+          ]
         }
       },
       {
-        "path": "/roles_transporter/{userId}",
+        "path": "/vehicles/{vehicleId}",
         "definition": {
-          "entityName": "RoleTransporter",
-          "schema": { "$ref": "#/backend/entities/UserProfile" },
-          "description": "Transporter role existence check."
+          "entityName": "Vehicle",
+          "schema": {
+            "$ref": "#/backend/entities/Vehicle"
+          },
+          "description": "Contains real-time and static data for all transport vehicles. Used for 'Vehicles Online' and 'Vehicle Status Indicators'. Includes denormalized 'driverId' for direct linkage.",
+          "params": [
+            {
+              "name": "vehicleId",
+              "description": "The unique identifier of the vehicle."
+            }
+          ]
         }
       },
       {
-        "path": "/chemical_inventory/{id}",
-        "definition": { "entityName": "ChemicalInventory", "schema": { "$ref": "#/backend/entities/ChemicalInventory" }, "description": "Inventory master list." }
+        "path": "/shipments/{shipmentId}",
+        "definition": {
+          "entityName": "Shipment",
+          "schema": {
+            "$ref": "#/backend/entities/Shipment"
+          },
+          "description": "Stores details for all shipments, including status, current location, and route. Used for 'Active Shipments', 'Live GPS Shipment Map', and 'Shipment Activity Tracking'. Includes denormalized 'vehicleId' and 'driverId' for direct access to related entities without requiring 'get()' calls.",
+          "params": [
+            {
+              "name": "shipmentId",
+              "description": "The unique identifier of the shipment."
+            }
+          ]
+        }
       },
       {
-        "path": "/chemical_batches/{id}",
-        "definition": { "entityName": "ChemicalBatch", "schema": { "$ref": "#/backend/entities/ChemicalBatch" }, "description": "Specific batches." }
+        "path": "/chemical_batches/{batchId}",
+        "definition": {
+          "entityName": "ChemicalBatch",
+          "schema": {
+            "$ref": "#/backend/entities/ChemicalBatch"
+          },
+          "description": "Master data collection for all chemical batches. Read-only for general dashboard monitoring, write access restricted by user roles.",
+          "params": [
+            {
+              "name": "batchId",
+              "description": "The unique identifier of the chemical batch."
+            }
+          ]
+        }
       },
       {
-        "path": "/shipment_requests/{id}",
-        "definition": { "entityName": "ShipmentRequest", "schema": { "$ref": "#/backend/entities/ShipmentRequest" }, "description": "Shipment requests." }
+        "path": "/iot_devices/{deviceId}",
+        "definition": {
+          "entityName": "IoTDevice",
+          "schema": {
+            "$ref": "#/backend/entities/IoTDevice"
+          },
+          "description": "Stores status and details for all IoT devices. Used for 'Device Status Indicators'. Includes denormalized 'assignedToVehicleId' for direct linkage.",
+          "params": [
+            {
+              "name": "deviceId",
+              "description": "The unique identifier of the IoT device."
+            }
+          ]
+        }
       },
       {
-        "path": "/usage_logs/{id}",
-        "definition": { "entityName": "UsageLog", "schema": { "$ref": "#/backend/entities/UsageLog" }, "description": "Activity logs." }
+        "path": "/transport_alerts/{alertId}",
+        "definition": {
+          "entityName": "TransportAlert",
+          "schema": {
+            "$ref": "#/backend/entities/TransportAlert"
+          },
+          "description": "Records all generated alerts related to shipments or vehicles. Used for 'Critical Alerts' and 'Recent Alerts Table'. Includes denormalized 'shipmentId', 'vehicleId', and 'assignedToUserId' for authorization independence and direct query capabilities.",
+          "params": [
+            {
+              "name": "alertId",
+              "description": "The unique identifier of the transport alert."
+            }
+          ]
+        }
       },
       {
-        "path": "/alerts/{id}",
-        "definition": { "entityName": "Alert", "schema": { "$ref": "#/backend/entities/Alert" }, "description": "System alerts." }
-      },
-      {
-        "path": "/hardware_devices/{id}",
-        "definition": { "entityName": "HardwareDevice", "schema": { "$ref": "#/backend/entities/HardwareDevice" }, "description": "Monitored hardware devices." }
-      },
-      {
-        "path": "/compliance_logs/{id}",
-        "definition": { "entityName": "ComplianceLog", "schema": { "$ref": "#/backend/entities/ComplianceLog" }, "description": "Audit event logs for compliance." }
+        "path": "/compliance_records/{recordId}",
+        "definition": {
+          "entityName": "ComplianceRecord",
+          "schema": {
+            "$ref": "#/backend/entities/ComplianceRecord"
+          },
+          "description": "Stores records of compliance checks and audits. Used for 'Compliance Score'. Includes denormalized 'relatedShipmentId', 'relatedVehicleId', and 'auditedByUserId' for authorization independence and direct query capabilities.",
+          "params": [
+            {
+              "name": "recordId",
+              "description": "The unique identifier of the compliance record."
+            }
+          ]
+        }
       }
-    ]
+    ],
+    "reasoning": "The Firestore data structure for the ChemGuard AI Transport Portal dashboard prioritizes flat, top-level collections for primary entities like 'shipments', 'vehicles', and 'transport_alerts'. This approach ensures optimal performance for real-time dashboards and simplifies security rules by adhering to the principle of structural segregation, where each collection maintains a homogeneous security posture. Authorization Independence is primarily achieved through: 1. User Role Denormalization: User roles are stored directly within each user's document in the /users/{userId} collection. This allows security rules to evaluate request.auth.uid against a user's role without requiring complex cross-document reads (get()) when authorizing actions on global data. For instance, a rule might verify get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin' for write access to sensitive collections. 2. Embedded IDs and References: For relationships, relevant IDs (e.g., driverId in a Vehicle document, vehicleId and driverId in a Shipment document, shipmentId, vehicleId, assignedToUserId in a TransportAlert document) are directly embedded. While these are primarily for data linkage, they indirectly support authorization independence by making all necessary context available within the document itself, reducing the need for chained get() operations if a rule needed to check related entity properties (though in this design, most checks will be role-based for global data). For TransportAlert and ComplianceRecord, the assignedToUserId and auditedByUserId fields are critical for allowing users to access items directly related to them without a get() call to a parent collection. Rules can directly check resource.data.assignedToUserId == request.auth.uid. QAPs (Queries as Authorization Policies) are supported by: 1. Structural Segregation: By placing all 'Active Shipments', 'Vehicles Online', 'Critical Alerts', and 'Compliance Scores' into their respective top-level collections (/shipments, /vehicles, /transport_alerts, /compliance_records), security rules can grant broad read access to authenticated/authorized dashboard users for the entire collection. This means client-side queries can efficiently filter data (e.g., shipments.where('status', '==', 'In Transit')) without the security rules attempting to re-filter or restrict the results based on content, which is inefficient and insecure. The rule simply states if a user *can* read from shipments at all. 2. Explicit Data Fields for Filtering: Data fields like status, healthStatus, severity, movementStatus, and assignedToUserId are consistently used for filtering and querying. For example, fetching 'Critical Alerts' involves a query like collection('transport_alerts').where('severity', '==', 'Critical'). The security rule simply verifies that the requesting user has read access to the transport_alerts collection based on their role in /users/{userId}. This makes queries predictable and performant, as security rules are not used as filters. Overall, the design promotes a secure, scalable, and debuggable system by adhering to the core principles, especially authorization independence and QAPs, through thoughtful collection segregation and denormalization of key authorization fields."
   }
 }
