@@ -22,21 +22,18 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-  SidebarFooter,
 } from "@/components/ui/sidebar"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 const navItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/pharma/dashboard" },
   { title: "Chemical Inventory", icon: Beaker, href: "/chemicals" },
   { title: "Batch Management", icon: Database, href: "#" },
-  { title: "Shipment Requests", icon: Truck, href: "#" },
+  { title: "Shipment Requests", icon: Truck, href: "/pharma/shipment-requests" },
   { title: "Hardware Monitoring", icon: Cpu, href: "#" },
   { title: "Usage Logs", icon: History, href: "#" },
   { title: "Compliance Logs", icon: ShieldCheck, href: "#" },
