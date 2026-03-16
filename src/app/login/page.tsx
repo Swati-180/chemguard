@@ -157,11 +157,11 @@ export default function LoginPage() {
 
     signInWithEmailAndPassword(auth, trimmedEmail, password)
       .catch((error: any) => {
-        // Standardized error message for any authentication failure
+        // Updated error message to match user request precisely for all portals
         toast({ 
           variant: "destructive", 
           title: "Access Denied", 
-          description: "The email or password entered is incorrect."
+          description: "Access Denied: The email or password entered is incorrect."
         })
       })
   }
@@ -230,6 +230,8 @@ export default function LoginPage() {
           showPass={showPassword.pharma}
           togglePass={() => togglePassword('pharma')}
           buttonText="Login to Lab"
+          emailId="email"
+          passwordId="password"
         />
 
         <PortalCard 
@@ -284,6 +286,8 @@ interface PortalCardProps {
   showPass: boolean
   togglePass: () => void
   buttonText: string
+  emailId?: string
+  passwordId?: string
 }
 
 function PortalCard({ 
@@ -300,7 +304,9 @@ function PortalCard({
   onPassChange,
   showPass,
   togglePass,
-  buttonText
+  buttonText,
+  emailId,
+  passwordId
 }: PortalCardProps) {
   const colorMap = {
     primary: "text-primary border-primary/20 bg-primary/5 hover:border-primary/40 shadow-primary/10",
@@ -344,10 +350,11 @@ function PortalCard({
 
         <div className="space-y-4 pt-4">
           <div className="space-y-2">
-            <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Email</Label>
+            <Label htmlFor={emailId} className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Email</Label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
               <Input 
+                id={emailId}
                 type="email"
                 placeholder="Enter email" 
                 value={email}
@@ -359,7 +366,7 @@ function PortalCard({
 
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Password</Label>
+              <Label htmlFor={passwordId} className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Password</Label>
               <button 
                 onClick={togglePass}
                 className="text-[10px] font-bold text-muted-foreground hover:text-white uppercase tracking-tighter flex items-center gap-1"
@@ -371,6 +378,7 @@ function PortalCard({
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
               <Input 
+                id={passwordId}
                 type={showPass ? "text" : "password"} 
                 placeholder="Enter password" 
                 value={password}
