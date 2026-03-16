@@ -50,18 +50,17 @@
       "description": "Represents a specific batch of a chemical.",
       "properties": {
         "id": { "type": "string" },
-        "batchNumber": { "type": "string" },
-        "chemicalInventoryId": { "type": "string" },
+        "batchId": { "type": "string" },
+        "chemicalName": { "type": "string" },
         "quantity": { "type": "number" },
         "unit": { "type": "string" },
-        "manufactureDate": { "type": "string", "format": "date" },
-        "expiryDate": { "type": "string", "format": "date" },
+        "productionDate": { "type": "string", "format": "date" },
         "storageLocation": { "type": "string" },
         "status": { "type": "string" },
-        "hazardLevel": { "type": "string" },
+        "createdBy": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "batchNumber", "chemicalInventoryId", "quantity", "unit", "manufactureDate", "expiryDate", "storageLocation", "status", "hazardLevel", "createdAt"]
+      "required": ["id", "batchId", "chemicalName", "quantity", "unit", "productionDate", "storageLocation", "status", "createdBy", "createdAt"]
     },
     "ChemicalInventory": {
       "$schema": "http://json-schema.org/draft-07/schema#",

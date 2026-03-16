@@ -1,10 +1,11 @@
+
 "use client"
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Plus, Truck, Beaker, MoreHorizontal } from "lucide-react"
 import { useFirestore, useUser } from "@/firebase"
 import { collection, doc, serverTimestamp } from "firebase/firestore"
-import { setDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase/non-blocking-updates"
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 
@@ -23,22 +24,21 @@ export function PharmaQuickActions() {
 
     switch (id) {
       case "batch":
-        const batchId = `B-${Math.floor(Math.random() * 10000)}`
-        const batchRef = doc(collection(db, "chemical_batches"), batchId)
+        const batchDocId = `B-${Math.floor(Math.random() * 10000)}`
+        const batchRef = doc(collection(db, "chemical_batches"), batchDocId)
         setDocumentNonBlocking(batchRef, {
-          id: batchId,
-          batchNumber: batchId,
-          chemicalInventoryId: "chem_001",
-          quantity: 100,
+          id: batchDocId,
+          batchId: batchDocId,
+          chemicalName: "Ammonium Nitrate (Precursor)",
+          quantity: 250,
           unit: "kg",
-          manufactureDate: new Date().toISOString().split('T')[0],
-          expiryDate: new Date(Date.now() + 31536000000).toISOString().split('T')[0],
-          storageLocation: "R&D Lab Alpha",
+          productionDate: new Date().toISOString().split('T')[0],
+          storageLocation: "R&D Lab Alpha - Section 4",
           status: "Available",
-          hazardLevel: "Medium",
+          createdBy: user.uid,
           createdAt: new Date().toISOString()
         }, { merge: true })
-        toast({ title: "Operation Initiated", description: `Provisioning new chemical batch: ${batchId}` })
+        toast({ title: "Operation Initiated", description: `Provisioning new chemical batch: ${batchDocId}` })
         break
 
       case "usage":
