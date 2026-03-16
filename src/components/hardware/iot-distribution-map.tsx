@@ -3,6 +3,7 @@
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Globe, MapPin, AlertCircle, Maximize2 } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export function IoTDistributionMap() {
   return (
@@ -81,7 +82,7 @@ export function IoTDistributionMap() {
 
         {/* Data Stream */}
         <div className="absolute top-6 right-6 p-3 bg-black/40 border border-white/5 rounded-lg text-[8px] font-mono text-primary space-y-1">
-           <p className="opacity-50 tracking-tighter">>>> RELAY_STREAM_ID: SOC_EU_882</p>
+           <p className="opacity-50 tracking-tighter">{">>>"} RELAY_STREAM_ID: SOC_EU_882</p>
            <p>PACKET_SYNC: [OK]</p>
            <p>LATENCY: 12ms</p>
            <p>BUFFER_HEALTH: 99.4%</p>
@@ -90,5 +91,3 @@ export function IoTDistributionMap() {
     </Card>
   )
 }
-
-import { cn } from "@/lib/utils"
