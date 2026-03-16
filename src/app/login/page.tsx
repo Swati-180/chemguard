@@ -7,10 +7,7 @@ import {
   Settings, 
   Beaker, 
   Truck, 
-  Eye, 
-  EyeOff, 
   Lock, 
-  User,
   ArrowRight,
   ShieldCheck,
   Database,
@@ -18,9 +15,7 @@ import {
   AlertCircle
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
@@ -30,7 +25,7 @@ import { doc, getDoc, setDoc } from "firebase/firestore"
 
 /**
  * ChemGuard AI Login Page.
- * Authenticates users via Firebase Auth and redirects based on their Firestore role.
+ * Supports one-click demo login using predefined credentials.
  */
 export default function LoginPage() {
   const router = useRouter()
@@ -39,22 +34,15 @@ export default function LoginPage() {
   const { user, isUserLoading } = useUser()
   const [isProvisioning, setIsProvisioning] = React.useState(false)
   const [isVerifying, setIsVerifying] = React.useState(false)
-  
-  const [showPassword, setShowPassword] = React.useState<Record<string, boolean>>({
-    admin: false,
-    pharma: false,
-    transporter: false
-  })
 
-  const [credentials, setCredentials] = React.useState({
+  const demoCreds = {
     admin: { email: "admin@chemguard.ai", password: "admin123" },
     pharma: { email: "pharma@chemguard.ai", password: "pharma123" },
     transporter: { email: "transport@chemguard.ai", password: "transport123" }
-  })
+  }
 
   // Automatic redirect if already logged in or after successful login
   React.useEffect(() => {
-    // CRITICAL: Do not redirect or sign out if we are currently in the middle of provisioning accounts
     if (!isUserLoading && user && !isProvisioning) {
       const fetchRoleAndRedirect = async () => {
         setIsVerifying(true)
@@ -74,7 +62,6 @@ export default function LoginPage() {
               await signOut(auth)
             }
           } else {
-            // Profile missing - we sign out to prevent redirect loops for invalid users
             await signOut(auth)
           }
         } catch (error) {
@@ -86,6 +73,22 @@ export default function LoginPage() {
       fetchRoleAndRedirect()
     }
   }, [user, isUserLoading, db, router, auth, isProvisioning])
+
+  const handleLogin = async (portal: 'admin' | 'pharma' | 'transporter') => {
+    const { email, password } = demoCreds[portal]
+    
+    setIsVerifying(true)
+    try {
+      await signInWithEmailAndPassword(auth, email, password)
+    } catch (error: any) {
+      setIsVerifying(false)
+      toast({ 
+        variant: "destructive", 
+        title: "Login Failed", 
+        description: "Demo login failed. Please initialize demo accounts." 
+      })
+    }
+  }
 
   const handleProvisionDemoData = async () => {
     setIsProvisioning(true)
@@ -101,18 +104,14 @@ export default function LoginPage() {
       for (const u of demoUsers) {
         let uid = ""
         try {
-          // 1. Try to sign in first to verify existing credentials and get UID
           const userCredential = await signInWithEmailAndPassword(auth, u.email, u.password)
           uid = userCredential.user.uid
         } catch (signInError: any) {
           if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-email' || signInError.code === 'auth/invalid-credential') {
-            // 2. If user doesn't exist (or creds fail), try to create them
             try {
               const userCredential = await createUserWithEmailAndPassword(auth, u.email, u.password)
               uid = userCredential.user.uid
             } catch (createError: any) {
-              // If creation fails because user already exists, we might have wrong password stored locally
-              // In this prototype, we skip and continue to next user
               continue
             }
           } else {
@@ -121,7 +120,6 @@ export default function LoginPage() {
         }
 
         if (uid) {
-          // 3. Store/Update profile in 'users' collection
           await setDoc(doc(db, "users", uid), {
             id: uid,
             name: u.name,
@@ -130,7 +128,6 @@ export default function LoginPage() {
             createdAt: new Date().toISOString()
           }, { merge: true })
 
-          // 4. Populate role-specific check collections for security rules
           const roleCollMap: Record<string, string> = {
             admin: "roles_admin",
             pharma: "roles_pharma",
@@ -140,52 +137,12 @@ export default function LoginPage() {
         }
       }
       
-      // Clear session after provisioning to allow clean manual login
       await signOut(auth)
       toast({ title: "Setup Success", description: "Demo environment fully synchronized. You may now log in." })
     } catch (error: any) {
       toast({ variant: "destructive", title: "Initialization Error", description: "Profile synchronization encountered an interruption." })
     } finally {
       setIsProvisioning(false)
-    }
-  }
-
-  const togglePassword = (portal: string) => {
-    setShowPassword(prev => ({ ...prev, [portal]: !prev[portal] }))
-  }
-
-  const handleInputChange = (portal: string, field: string, value: string) => {
-    setCredentials(prev => ({
-      ...prev,
-      [portal]: { ...prev[portal], [field]: value }
-    }))
-  }
-
-  const handleLogin = async (portal: string, e?: React.FormEvent) => {
-    if (e) e.preventDefault()
-    
-    const { email, password } = credentials[portal as keyof typeof credentials]
-
-    if (!email || !password) {
-      toast({ 
-        variant: "destructive", 
-        title: "Missing Credentials", 
-        description: "Please enter both email and password." 
-      })
-      return
-    }
-
-    const trimmedEmail = email.trim()
-    toast({ title: "Verifying Identity", description: "Connecting to secure hub..." })
-
-    try {
-      await signInWithEmailAndPassword(auth, trimmedEmail, password)
-    } catch (error: any) {
-      toast({ 
-        variant: "destructive", 
-        title: "Access Denied", 
-        description: "Access Denied: The email or password entered is incorrect."
-      })
     }
   }
 
@@ -238,17 +195,8 @@ export default function LoginPage() {
           icon={Settings}
           color="primary"
           badges={["ISO 27001 Certified", "Multi-Factor Auth"]}
-          demoCreds="admin@chemguard.ai / admin123"
-          onLogin={(e) => handleLogin('admin', e)}
-          email={credentials.admin.email}
-          password={credentials.admin.password}
-          onEmailChange={(v) => handleInputChange('admin', 'email', v)}
-          onPassChange={(v) => handleInputChange('admin', 'password', v)}
-          showPass={showPassword.admin}
-          togglePass={() => togglePassword('admin')}
+          onLogin={() => handleLogin('admin')}
           buttonText="Login to Admin"
-          emailId="admin-email"
-          passwordId="admin-password"
         />
 
         <PortalCard 
@@ -257,17 +205,8 @@ export default function LoginPage() {
           icon={Beaker}
           color="accent"
           badges={["FDA Compliant Logging", "Encrypted Storage"]}
-          demoCreds="pharma@chemguard.ai / pharma123"
-          onLogin={(e) => handleLogin('pharma', e)}
-          email={credentials.pharma.email}
-          password={credentials.pharma.password}
-          onEmailChange={(v) => handleInputChange('pharma', 'email', v)}
-          onPassChange={(v) => handleInputChange('pharma', 'password', v)}
-          showPass={showPassword.pharma}
-          togglePass={() => togglePassword('pharma')}
+          onLogin={() => handleLogin('pharma')}
           buttonText="Login to Lab"
-          emailId="email"
-          passwordId="password"
         />
 
         <PortalCard 
@@ -276,17 +215,8 @@ export default function LoginPage() {
           icon={Truck}
           color="orange"
           badges={["Real-Time GPS Validated", "Checkpoint Verification"]}
-          demoCreds="transport@chemguard.ai / transport123"
-          onLogin={(e) => handleLogin('transporter', e)}
-          email={credentials.transporter.email}
-          password={credentials.transporter.password}
-          onEmailChange={(v) => handleInputChange('transporter', 'email', v)}
-          onPassChange={(v) => handleInputChange('transporter', 'password', v)}
-          showPass={showPassword.transporter}
-          togglePass={() => togglePassword('transporter')}
+          onLogin={() => handleLogin('transporter')}
           buttonText="Login to Vehicle"
-          emailId="transport-email"
-          passwordId="transport-password"
         />
       </div>
 
@@ -294,10 +224,10 @@ export default function LoginPage() {
         <div className="p-4 bg-white/5 border border-white/10 rounded-2xl max-w-md text-center">
           <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest flex items-center justify-center gap-2 mb-2">
             <AlertCircle className="w-3 h-3 text-orange-400" />
-            First Time User?
+            System Setup
           </p>
           <p className="text-[11px] text-white/60 leading-relaxed mb-4">
-            If you encounter "Access Denied", please click the button below to initialize the demo security profiles in the cloud.
+            If one-click login fails, please click the button below to initialize the demo security profiles in the cloud.
           </p>
           <Button 
             variant="outline" 
@@ -324,17 +254,8 @@ interface PortalCardProps {
   icon: any
   color: 'primary' | 'accent' | 'orange'
   badges: string[]
-  demoCreds: string
-  onLogin: (e: React.FormEvent) => void
-  email: string
-  password: string
-  onEmailChange: (v: string) => void
-  onPassChange: (v: string) => void
-  showPass: boolean
-  togglePass: () => void
+  onLogin: () => void
   buttonText: string
-  emailId: string
-  passwordId: string
 }
 
 function PortalCard({ 
@@ -343,17 +264,8 @@ function PortalCard({
   icon: Icon, 
   color, 
   badges, 
-  demoCreds, 
   onLogin,
-  email,
-  password,
-  onEmailChange,
-  onPassChange,
-  showPass,
-  togglePass,
-  buttonText,
-  emailId,
-  passwordId
+  buttonText
 }: PortalCardProps) {
   const colorMap = {
     primary: "text-primary border-primary/20 bg-primary/5 hover:border-primary/40 shadow-primary/10",
@@ -395,63 +307,16 @@ function PortalCard({
           ))}
         </div>
 
-        <form onSubmit={onLogin} className="space-y-4 pt-4">
-          <div className="space-y-2">
-            <Label htmlFor={emailId} className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Email</Label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
-              <Input 
-                id={emailId}
-                type="email"
-                placeholder="Enter email" 
-                value={email}
-                onChange={(e) => onEmailChange(e.target.value)}
-                className="pl-10 h-11 bg-white/5 border-white/10 focus-visible:ring-primary/50 text-sm" 
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <Label htmlFor={passwordId} className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Password</Label>
-              <button 
-                type="button"
-                onClick={togglePass}
-                className="text-[10px] font-bold text-muted-foreground hover:text-white uppercase tracking-tighter flex items-center gap-1"
-              >
-                {showPass ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                {showPass ? 'Hide' : 'Show'}
-              </button>
-            </div>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
-              <Input 
-                id={passwordId}
-                type={showPass ? "text" : "password"} 
-                placeholder="Enter password" 
-                value={password}
-                onChange={(e) => onPassChange(e.target.value)}
-                className="pl-10 h-11 bg-white/5 border-white/10 focus-visible:ring-primary/50 text-sm" 
-              />
-            </div>
-          </div>
-
-          <Button 
-            type="submit"
-            className={cn(
-              "w-full h-12 font-headline font-bold uppercase tracking-widest transition-all mt-4",
-              btnMap[color]
-            )}
-          >
-            {buttonText}
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-        </form>
-
-        <div className="text-center space-y-1">
-          <p className="text-[9px] text-muted-foreground/40 uppercase tracking-widest">Demo Credentials</p>
-          <p className="text-[10px] font-mono text-primary/60">{demoCreds}</p>
-        </div>
+        <Button 
+          onClick={onLogin}
+          className={cn(
+            "w-full h-14 font-headline font-bold uppercase tracking-widest transition-all mt-4",
+            btnMap[color]
+          )}
+        >
+          {buttonText}
+          <ArrowRight className="w-4 h-4 ml-2" />
+        </Button>
       </CardContent>
     </Card>
   )
