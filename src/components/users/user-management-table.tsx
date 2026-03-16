@@ -1,3 +1,4 @@
+
 "use client"
 
 import {
@@ -87,7 +88,7 @@ export function UserManagementTable() {
             <TableHeader className="bg-white/5">
               <TableRow className="border-white/5 hover:bg-transparent uppercase">
                 <TableHead className="text-[10px] font-bold py-4">UID Reference</TableHead>
-                <TableHead className="text-[10px] font-bold py-4">Username</TableHead>
+                <TableHead className="text-[10px] font-bold py-4">Full Name</TableHead>
                 <TableHead className="text-[10px] font-bold py-4">System Role</TableHead>
                 <TableHead className="text-[10px] font-bold py-4">Email Address</TableHead>
                 <TableHead className="text-[10px] font-bold py-4">Status</TableHead>
@@ -97,7 +98,7 @@ export function UserManagementTable() {
               {users.map((user) => (
                 <TableRow key={user.id} className="border-white/5 hover:bg-white/5 transition-colors group">
                   <TableCell className="py-3 text-[11px] font-mono text-muted-foreground truncate max-w-[100px]">{user.id}</TableCell>
-                  <TableCell className="py-3 text-[11px] text-white font-medium">{user.username || user.firstName + ' ' + user.lastName}</TableCell>
+                  <TableCell className="py-3 text-[11px] text-white font-medium">{user.name || user.username || 'System User'}</TableCell>
                   <TableCell className="py-3 text-[11px] text-muted-foreground uppercase font-bold text-primary/80">{user.role}</TableCell>
                   <TableCell className="py-3 text-[11px] text-muted-foreground">{user.email}</TableCell>
                   <TableCell className="py-3">{getStatusBadge("Active")}</TableCell>

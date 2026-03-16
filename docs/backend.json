@@ -1,18 +1,23 @@
+
 {
   "entities": {
     "UserProfile": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserProfile",
       "type": "object",
-      "description": "Represents a user profile with administrative access to the ChemGuard AI dashboard.",
+      "description": "Represents a user profile within the ChemGuard AI system.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the UserProfile entity."
+          "description": "Unique identifier for the UserProfile entity (matching Firebase Auth UID)."
+        },
+        "name": {
+          "type": "string",
+          "description": "The full name of the user."
         },
         "username": {
           "type": "string",
-          "description": "Unique username for login context and display."
+          "description": "Unique username for display."
         },
         "email": {
           "type": "string",
@@ -21,34 +26,20 @@
         },
         "role": {
           "type": "string",
-          "description": "User's role or permission level within the system (e.g., 'Admin', 'Operator', 'Viewer')."
-        },
-        "firstName": {
-          "type": "string",
-          "description": "First name of the user."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "Last name of the user."
+          "description": "User's role in the system.",
+          "enum": ["admin", "pharma", "transporter"]
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp when the user profile was created.",
-          "format": "date-time"
-        },
-        "lastLoginAt": {
-          "type": "string",
-          "description": "Timestamp of the user's last successful login.",
+          "description": "Timestamp when the profile was created.",
           "format": "date-time"
         }
       },
       "required": [
         "id",
-        "username",
+        "name",
         "email",
         "role",
-        "firstName",
-        "lastName",
         "createdAt"
       ]
     },
@@ -56,524 +47,99 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ChemicalBatch",
       "type": "object",
-      "description": "Represents a specific batch of a chemical, tracking its quantity, dates, and status.",
+      "description": "Represents a specific batch of a chemical.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the ChemicalBatch entity."
-        },
-        "batchNumber": {
-          "type": "string",
-          "description": "Unique identifier assigned to this specific chemical batch."
-        },
-        "chemicalInventoryId": {
-          "type": "string",
-          "description": "Reference to the ChemicalInventory entry describing the type of chemical in this batch. (Relationship: ChemicalInventory 1:N ChemicalBatch)"
-        },
-        "quantity": {
-          "type": "number",
-          "description": "Current quantity of the chemical in this batch."
-        },
-        "unit": {
-          "type": "string",
-          "description": "Unit of measurement for the chemical quantity (e.g., 'kg', 'L')."
-        },
-        "manufactureDate": {
-          "type": "string",
-          "description": "Date when this chemical batch was manufactured.",
-          "format": "date"
-        },
-        "expiryDate": {
-          "type": "string",
-          "description": "Date when this chemical batch is no longer safe or effective for use.",
-          "format": "date"
-        },
-        "storageLocation": {
-          "type": "string",
-          "description": "Physical location where this chemical batch is currently stored."
-        },
-        "status": {
-          "type": "string",
-          "description": "Current status of the chemical batch (e.g., 'Available', 'In Use', 'Expired', 'Disposed')."
-        },
-        "hazardLevel": {
-          "type": "string",
-          "description": "Categorization of the hazard risk associated with this batch (e.g., 'Low', 'Medium', 'High')."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when this chemical batch record was created.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "batchNumber": { "type": "string" },
+        "chemicalInventoryId": { "type": "string" },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string" },
+        "manufactureDate": { "type": "string", "format": "date" },
+        "expiryDate": { "type": "string", "format": "date" },
+        "storageLocation": { "type": "string" },
+        "status": { "type": "string" },
+        "hazardLevel": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "batchNumber",
-        "chemicalInventoryId",
-        "quantity",
-        "unit",
-        "manufactureDate",
-        "expiryDate",
-        "storageLocation",
-        "status",
-        "hazardLevel",
-        "createdAt"
-      ]
+      "required": ["id", "batchNumber", "chemicalInventoryId", "quantity", "unit", "manufactureDate", "expiryDate", "storageLocation", "status", "hazardLevel", "createdAt"]
     },
     "ChemicalInventory": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ChemicalInventory",
       "type": "object",
-      "description": "Defines the properties of a chemical type, independent of specific batches.",
+      "description": "Defines the properties of a chemical type.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the ChemicalInventory entity."
-        },
-        "chemicalName": {
-          "type": "string",
-          "description": "Common or official name of the chemical."
-        },
-        "casNumber": {
-          "type": "string",
-          "description": "Chemical Abstracts Service (CAS) Registry Number, a unique numerical identifier for chemical substances."
-        },
-        "formula": {
-          "type": "string",
-          "description": "Chemical formula of the substance."
-        },
-        "hazardStatement": {
-          "type": "string",
-          "description": "Summary of primary hazards associated with the chemical, often from GHS."
-        },
-        "safetyDataSheetUrl": {
-          "type": "string",
-          "description": "URL to the Safety Data Sheet (SDS) for this chemical.",
-          "format": "uri"
-        },
-        "maxStorageCapacity": {
-          "type": "number",
-          "description": "Maximum recommended storage quantity for this chemical type within a facility."
-        },
-        "unit": {
-          "type": "string",
-          "description": "Default unit of measurement for this chemical (e.g., 'kg', 'L')."
-        },
-        "regulatoryCodes": {
-          "type": "array",
-          "description": "List of relevant regulatory codes or classifications (e.g., UN numbers, GHS pictograms).",
-          "items": {
-            "type": "string"
-          }
-        },
-        "description": {
-          "type": "string",
-          "description": "Detailed description of the chemical and its typical uses."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when this chemical inventory record was created.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "chemicalName": { "type": "string" },
+        "casNumber": { "type": "string" },
+        "formula": { "type": "string" },
+        "hazardStatement": { "type": "string" },
+        "safetyDataSheetUrl": { "type": "string", "format": "uri" },
+        "maxStorageCapacity": { "type": "number" },
+        "unit": { "type": "string" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "chemicalName",
-        "casNumber",
-        "formula",
-        "hazardStatement",
-        "safetyDataSheetUrl",
-        "maxStorageCapacity",
-        "unit",
-        "description",
-        "createdAt"
-      ]
+      "required": ["id", "chemicalName", "casNumber", "formula", "hazardStatement", "safetyDataSheetUrl", "maxStorageCapacity", "unit", "description", "createdAt"]
     },
     "ShipmentRequest": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ShipmentRequest",
       "type": "object",
-      "description": "Manages requests and tracking information for chemical shipments.",
+      "description": "Manages chemical shipment requests.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the ShipmentRequest entity."
-        },
-        "shipmentIdentifier": {
-          "type": "string",
-          "description": "Human-readable identifier for the shipment request."
-        },
-        "requestorId": {
-          "type": "string",
-          "description": "Reference to the UserProfile who initiated the shipment request. (Relationship: UserProfile 1:N ShipmentRequest)"
-        },
-        "chemicalBatchIds": {
-          "type": "array",
-          "description": "References to the ChemicalBatch entities included in this shipment. (Relationship: ChemicalBatch N:N ShipmentRequest)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "originLocation": {
-          "type": "string",
-          "description": "Starting point of the shipment (e.g., 'Warehouse A', 'Facility XYZ')."
-        },
-        "destinationLocation": {
-          "type": "string",
-          "description": "Final destination of the shipment."
-        },
-        "expectedDepartureTime": {
-          "type": "string",
-          "description": "Anticipated date and time for the shipment to depart.",
-          "format": "date-time"
-        },
-        "expectedArrivalTime": {
-          "type": "string",
-          "description": "Anticipated date and time for the shipment to arrive.",
-          "format": "date-time"
-        },
-        "actualDepartureTime": {
-          "type": "string",
-          "description": "Actual date and time when the shipment departed.",
-          "format": "date-time"
-        },
-        "actualArrivalTime": {
-          "type": "string",
-          "description": "Actual date and time when the shipment arrived.",
-          "format": "date-time"
-        },
-        "status": {
-          "type": "string",
-          "description": "Current status of the shipment (e.g., 'Pending', 'In Transit', 'Delivered', 'Canceled')."
-        },
-        "trackingNumber": {
-          "type": "string",
-          "description": "External tracking number provided by the logistics carrier."
-        },
-        "assignedVehicleId": {
-          "type": "string",
-          "description": "Reference to the HardwareDevice (e.g., GPS tracker) assigned to monitor the vehicle for this shipment. (Relationship: HardwareDevice 1:N ShipmentRequest)"
-        },
-        "currentLatitude": {
-          "type": "number",
-          "description": "Current latitude coordinate of the shipment for real-time tracking."
-        },
-        "currentLongitude": {
-          "type": "number",
-          "description": "Current longitude coordinate of the shipment for real-time tracking."
-        },
-        "routeDataUrl": {
-          "type": "string",
-          "description": "URL to a GeoJSON or other format file containing the planned or actual route data for map visualization.",
-          "format": "uri"
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the shipment request was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp of the last update to the shipment request.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "shipmentIdentifier": { "type": "string" },
+        "requestorId": { "type": "string" },
+        "chemicalBatchIds": { "type": "array", "items": { "type": "string" } },
+        "originLocation": { "type": "string" },
+        "destinationLocation": { "type": "string" },
+        "expectedDepartureTime": { "type": "string", "format": "date-time" },
+        "expectedArrivalTime": { "type": "string", "format": "date-time" },
+        "status": { "type": "string" },
+        "trackingNumber": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "shipmentIdentifier",
-        "requestorId",
-        "chemicalBatchIds",
-        "originLocation",
-        "destinationLocation",
-        "expectedDepartureTime",
-        "expectedArrivalTime",
-        "status",
-        "createdAt"
-      ]
-    },
-    "HardwareDevice": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "HardwareDevice",
-      "type": "object",
-      "description": "Records information about various IoT devices used for monitoring chemical batches and shipments.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the HardwareDevice entity."
-        },
-        "deviceIdentifier": {
-          "type": "string",
-          "description": "Unique identifier for the hardware device (e.g., asset tag, serial)."
-        },
-        "deviceName": {
-          "type": "string",
-          "description": "Friendly name of the device (e.g., 'Warehouse GPS Unit', 'Truck Temp Sensor A')."
-        },
-        "deviceType": {
-          "type": "string",
-          "description": "Type of hardware device (e.g., 'GPS', 'Temperature Sensor', 'Tamper Sensor', 'Checkpoint Camera')."
-        },
-        "manufacturer": {
-          "type": "string",
-          "description": "Manufacturer of the device."
-        },
-        "modelNumber": {
-          "type": "string",
-          "description": "Model number of the device."
-        },
-        "serialNumber": {
-          "type": "string",
-          "description": "Unique serial number of the device."
-        },
-        "status": {
-          "type": "string",
-          "description": "Current operational status of the device (e.g., 'Online', 'Offline', 'Error', 'Maintenance')."
-        },
-        "lastReportedAt": {
-          "type": "string",
-          "description": "Timestamp of the last data transmission or status update from the device.",
-          "format": "date-time"
-        },
-        "firmwareVersion": {
-          "type": "string",
-          "description": "Firmware version running on the device."
-        },
-        "installationLocation": {
-          "type": "string",
-          "description": "Physical location where the device is installed or last known fixed location."
-        },
-        "associatedShipmentId": {
-          "type": "string",
-          "description": "Reference to the ShipmentRequest currently associated with this device, if applicable. (Relationship: HardwareDevice N:1 ShipmentRequest)"
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the hardware device record was created.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "deviceIdentifier",
-        "deviceName",
-        "deviceType",
-        "manufacturer",
-        "modelNumber",
-        "serialNumber",
-        "status",
-        "lastReportedAt",
-        "createdAt"
-      ]
+      "required": ["id", "shipmentIdentifier", "requestorId", "chemicalBatchIds", "originLocation", "destinationLocation", "status", "createdAt"]
     },
     "UsageLog": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UsageLog",
       "type": "object",
-      "description": "Logs all movements, consumption, and changes to chemical batch quantities.",
+      "description": "Logs movements and consumption of chemicals.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the UsageLog entity."
-        },
-        "logIdentifier": {
-          "type": "string",
-          "description": "Unique identifier for the specific usage log entry."
-        },
-        "timestamp": {
-          "type": "string",
-          "description": "Date and time when the usage event occurred.",
-          "format": "date-time"
-        },
-        "chemicalBatchId": {
-          "type": "string",
-          "description": "Reference to the ChemicalBatch that was affected by this usage event. (Relationship: ChemicalBatch 1:N UsageLog)"
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the UserProfile who performed or recorded this usage action. (Relationship: UserProfile 1:N UsageLog)"
-        },
-        "actionType": {
-          "type": "string",
-          "description": "Type of action performed (e.g., 'Dispensed', 'Transferred', 'Received', 'Disposed', 'Consumed')."
-        },
-        "quantityChanged": {
-          "type": "number",
-          "description": "Quantity of chemical affected by the action."
-        },
-        "unit": {
-          "type": "string",
-          "description": "Unit of measurement for the quantity changed (e.g., 'kg', 'L')."
-        },
-        "newQuantityInBatch": {
-          "type": "number",
-          "description": "Resulting quantity in the associated chemical batch after this action."
-        },
-        "location": {
-          "type": "string",
-          "description": "Location where the usage action took place."
-        },
-        "notes": {
-          "type": "string",
-          "description": "Optional notes or comments about the usage event."
-        }
+        "id": { "type": "string" },
+        "logIdentifier": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "chemicalBatchId": { "type": "string" },
+        "userId": { "type": "string" },
+        "actionType": { "type": "string" },
+        "quantityChanged": { "type": "number" },
+        "unit": { "type": "string" },
+        "location": { "type": "string" }
       },
-      "required": [
-        "id",
-        "logIdentifier",
-        "timestamp",
-        "chemicalBatchId",
-        "userId",
-        "actionType",
-        "quantityChanged",
-        "unit",
-        "newQuantityInBatch",
-        "location"
-      ]
+      "required": ["id", "logIdentifier", "timestamp", "chemicalBatchId", "userId", "actionType", "quantityChanged", "unit", "location"]
     },
     "Alert": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Alert",
       "type": "object",
-      "description": "Stores information about critical events and anomalies detected by the system.",
+      "description": "Stores system alerts.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Alert entity."
-        },
-        "alertIdentifier": {
-          "type": "string",
-          "description": "Unique identifier for the specific alert instance."
-        },
-        "timestamp": {
-          "type": "string",
-          "description": "Date and time when the alert was triggered.",
-          "format": "date-time"
-        },
-        "alertType": {
-          "type": "string",
-          "description": "Categorization of the alert (e.g., 'Tampering Detected', 'Temperature Excursion', 'Off-Route Deviation', 'Low Stock', 'Compliance Breach')."
-        },
-        "severity": {
-          "type": "string",
-          "description": "Severity level of the alert (e.g., 'Critical', 'Warning', 'Info')."
-        },
-        "status": {
-          "type": "string",
-          "description": "Current status of the alert (e.g., 'New', 'Acknowledged', 'Resolved', 'False Positive')."
-        },
-        "location": {
-          "type": "string",
-          "description": "Location or coordinates where the alert originated."
-        },
-        "shipmentId": {
-          "type": "string",
-          "description": "Reference to the ShipmentRequest related to this alert, if applicable. (Relationship: ShipmentRequest N:1 Alert)"
-        },
-        "hardwareDeviceId": {
-          "type": "string",
-          "description": "Reference to the HardwareDevice that triggered this alert, if applicable. (Relationship: HardwareDevice N:1 Alert)"
-        },
-        "chemicalBatchId": {
-          "type": "string",
-          "description": "Reference to the ChemicalBatch involved in this alert, if applicable. (Relationship: ChemicalBatch N:1 Alert)"
-        },
-        "description": {
-          "type": "string",
-          "description": "Detailed message or explanation of the alert."
-        },
-        "riskLevel": {
-          "type": "string",
-          "description": "Overall risk level associated with this alert, often AI-determined (e.g., 'Low', 'Medium', 'High')."
-        },
-        "resolvedByUserId": {
-          "type": "string",
-          "description": "Reference to the UserProfile who resolved the alert, if applicable. (Relationship: UserProfile N:1 Alert)"
-        },
-        "resolvedAt": {
-          "type": "string",
-          "description": "Timestamp when the alert was marked as resolved.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "alertIdentifier": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "alertType": { "type": "string" },
+        "severity": { "type": "string" },
+        "status": { "type": "string" },
+        "description": { "type": "string" }
       },
-      "required": [
-        "id",
-        "alertIdentifier",
-        "timestamp",
-        "alertType",
-        "severity",
-        "status",
-        "description",
-        "riskLevel"
-      ]
-    },
-    "ComplianceLog": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ComplianceLog",
-      "type": "object",
-      "description": "Records compliance checks and their results against predefined rules and regulations.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the ComplianceLog entity."
-        },
-        "logIdentifier": {
-          "type": "string",
-          "description": "Unique identifier for the specific compliance log entry."
-        },
-        "timestamp": {
-          "type": "string",
-          "description": "Date and time when the compliance check was performed.",
-          "format": "date-time"
-        },
-        "complianceRuleName": {
-          "type": "string",
-          "description": "Name of the compliance rule or regulation being checked (e.g., 'Temperature_Range_Compliance', 'Storage_Limit_Compliance')."
-        },
-        "isCompliant": {
-          "type": "boolean",
-          "description": "Indicates whether the entity was found to be compliant with the rule."
-        },
-        "details": {
-          "type": "string",
-          "description": "Detailed explanation of the compliance status, including any non-compliance findings."
-        },
-        "relatedEntityId": {
-          "type": "string",
-          "description": "ID of the entity (e.g., ShipmentRequest, ChemicalBatch, HardwareDevice) to which this compliance log entry pertains."
-        },
-        "relatedEntityType": {
-          "type": "string",
-          "description": "Type of the entity to which this compliance log entry pertains (e.g., 'ShipmentRequest', 'ChemicalBatch', 'HardwareDevice')."
-        },
-        "auditorId": {
-          "type": "string",
-          "description": "Reference to the UserProfile who performed or initiated the compliance audit, if applicable. (Relationship: UserProfile N:1 ComplianceLog)"
-        },
-        "complianceScoreChange": {
-          "type": "number",
-          "description": "Change in the overall compliance score related to this event, for trend analysis."
-        },
-        "currentComplianceScore": {
-          "type": "number",
-          "description": "Overall compliance score at the time of this log entry."
-        }
-      },
-      "required": [
-        "id",
-        "logIdentifier",
-        "timestamp",
-        "complianceRuleName",
-        "isCompliant",
-        "details",
-        "relatedEntityId",
-        "relatedEntityType"
-      ]
+      "required": ["id", "alertIdentifier", "timestamp", "alertType", "severity", "status", "description"]
     }
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "password"
     ]
   },
   "firestore": {
@@ -582,179 +148,54 @@
         "path": "/users/{userId}",
         "definition": {
           "entityName": "UserProfile",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Stores individual user profiles. Access is typically restricted to the owning user (matching `request.auth.uid`) or authorized administrators. The 'role' field is for application logic, not directly for Firestore security rules (see /roles_admin, /roles_operator, /roles_viewer for security rule roles).",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user, typically matching Firebase Authentication UID."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/UserProfile" },
+          "description": "User profiles. Accessible by owner or admins."
         }
       },
       {
         "path": "/roles_admin/{userId}",
         "definition": {
-          "entityName": "UserRoleAdmin",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Dedicated collection for administrative roles. A document's existence at this path signifies that the `userId` is an 'Admin'. Used for security rule authorization via existence checks, adhering to Authorization Independence.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who holds the 'Admin' role."
-            }
-          ]
+          "entityName": "RoleAdmin",
+          "schema": { "$ref": "#/backend/entities/UserProfile" },
+          "description": "Admin role existence check."
         }
       },
       {
-        "path": "/roles_operator/{userId}",
+        "path": "/roles_pharma/{userId}",
         "definition": {
-          "entityName": "UserRoleOperator",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Dedicated collection for operator roles. A document's existence at this path signifies that the `userId` is an 'Operator'. Used for security rule authorization via existence checks.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who holds the 'Operator' role."
-            }
-          ]
+          "entityName": "RolePharma",
+          "schema": { "$ref": "#/backend/entities/UserProfile" },
+          "description": "Pharma role existence check."
         }
       },
       {
-        "path": "/roles_viewer/{userId}",
+        "path": "/roles_transporter/{userId}",
         "definition": {
-          "entityName": "UserRoleViewer",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Dedicated collection for viewer roles. A document's existence at this path signifies that the `userId` is a 'Viewer'. Used for security rule authorization via existence checks.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who holds the 'Viewer' role."
-            }
-          ]
+          "entityName": "RoleTransporter",
+          "schema": { "$ref": "#/backend/entities/UserProfile" },
+          "description": "Transporter role existence check."
         }
       },
       {
-        "path": "/chemical_inventory/{chemicalInventoryId}",
-        "definition": {
-          "entityName": "ChemicalInventory",
-          "schema": {
-            "$ref": "#/backend/entities/ChemicalInventory"
-          },
-          "description": "Master list of chemical definitions. Access is typically role-based, allowing all authorized users (e.g., 'Viewer' role or higher) to read/list, and 'Admin'/'Operator' roles to manage.",
-          "params": [
-            {
-              "name": "chemicalInventoryId",
-              "description": "The unique identifier for a specific chemical type in the inventory."
-            }
-          ]
-        }
+        "path": "/chemical_inventory/{id}",
+        "definition": { "entityName": "ChemicalInventory", "schema": { "$ref": "#/backend/entities/ChemicalInventory" }, "description": "Inventory master list." }
       },
       {
-        "path": "/chemical_batches/{chemicalBatchId}",
-        "definition": {
-          "entityName": "ChemicalBatch",
-          "schema": {
-            "$ref": "#/backend/entities/ChemicalBatch"
-          },
-          "description": "Records specific batches of chemicals. Access is role-based; 'Viewer' roles can read/list, 'Admin'/'Operator' roles can manage. `chemicalInventoryId` is a reference, not an authorization dependency.",
-          "params": [
-            {
-              "name": "chemicalBatchId",
-              "description": "The unique identifier for a specific chemical batch."
-            }
-          ]
-        }
+        "path": "/chemical_batches/{id}",
+        "definition": { "entityName": "ChemicalBatch", "schema": { "$ref": "#/backend/entities/ChemicalBatch" }, "description": "Specific batches." }
       },
       {
-        "path": "/shipment_requests/{shipmentRequestId}",
-        "definition": {
-          "entityName": "ShipmentRequest",
-          "schema": {
-            "$ref": "#/backend/entities/ShipmentRequest"
-          },
-          "description": "Manages chemical shipment requests. Access is role-based (Admin/Operator can manage all), and also allows requestors to access their own requests. The 'requestorId' is denormalized within the document for Authorization Independence.",
-          "params": [
-            {
-              "name": "shipmentRequestId",
-              "description": "The unique identifier for a specific shipment request."
-            }
-          ]
-        }
+        "path": "/shipment_requests/{id}",
+        "definition": { "entityName": "ShipmentRequest", "schema": { "$ref": "#/backend/entities/ShipmentRequest" }, "description": "Shipment requests." }
       },
       {
-        "path": "/hardware_devices/{hardwareDeviceId}",
-        "definition": {
-          "entityName": "HardwareDevice",
-          "schema": {
-            "$ref": "#/backend/entities/HardwareDevice"
-          },
-          "description": "Stores information about IoT hardware devices. Access is role-based; 'Viewer' roles can read/list, 'Admin'/'Operator' roles can manage. `associatedShipmentId` is a reference, not an authorization dependency.",
-          "params": [
-            {
-              "name": "hardwareDeviceId",
-              "description": "The unique identifier for a specific hardware device."
-            }
-          ]
-        }
+        "path": "/usage_logs/{id}",
+        "definition": { "entityName": "UsageLog", "schema": { "$ref": "#/backend/entities/UsageLog" }, "description": "Activity logs." }
       },
       {
-        "path": "/usage_logs/{usageLogId}",
-        "definition": {
-          "entityName": "UsageLog",
-          "schema": {
-            "$ref": "#/backend/entities/UsageLog"
-          },
-          "description": "Audit logs for chemical usage. Access is primarily role-based for reading/listing by 'Viewer' or higher roles. `userId` and `chemicalBatchId` are references, not authorization dependencies.",
-          "params": [
-            {
-              "name": "usageLogId",
-              "description": "The unique identifier for a specific usage log entry."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/alerts/{alertId}",
-        "definition": {
-          "entityName": "Alert",
-          "schema": {
-            "$ref": "#/backend/entities/Alert"
-          },
-          "description": "Stores critical system alerts. Access is role-based; 'Viewer' roles can read/list, 'Admin'/'Operator' roles can update status. Related IDs are references, not authorization dependencies.",
-          "params": [
-            {
-              "name": "alertId",
-              "description": "The unique identifier for a specific alert."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/compliance_logs/{complianceLogId}",
-        "definition": {
-          "entityName": "ComplianceLog",
-          "schema": {
-            "$ref": "#/backend/entities/ComplianceLog"
-          },
-          "description": "Records compliance check results. Access is role-based for reading/listing by 'Viewer' or higher roles. `auditorId` and `relatedEntityId` are references, not authorization dependencies.",
-          "params": [
-            {
-              "name": "complianceLogId",
-              "description": "The unique identifier for a specific compliance log entry."
-            }
-          ]
-        }
+        "path": "/alerts/{id}",
+        "definition": { "entityName": "Alert", "schema": { "$ref": "#/backend/entities/Alert" }, "description": "System alerts." }
       }
-    ],
-    "reasoning": "The Firestore data structure for ChemGuard AI Dashboard prioritizes secure, scalable, and debuggable authorization by strictly adhering to the core design principles. The primary strategy revolves around **Authorization Independence via Denormalization** and **Structural Segregation** to simplify security rules and enable robust Query-Acceptance Patterns (QAPs).\n\n**Authorization Independence (CRITICAL) Explanation:**\n1.  **Role-Based Access Control (DBAC):** Instead of embedding roles directly into the `/users/{userId}` document and then performing a `get()` call within rules to retrieve the user's role, we employ the 'Existence over Content' strategy. Dedicated, top-level collections are used for role assignment (e.g., `/roles_admin/{userId}`, `/roles_operator/{userId}`, `/roles_viewer/{userId}`). A user's role is determined by the *existence* of a document with their `uid` in the respective role collection. This allows security rules to check `exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid))` without creating a hierarchical dependency on the `UserProfile` data itself. This completely avoids `get()` calls on application-specific data for general role authorization, fulfilling the critical mandate.\n2.  **Document-Level Ownership/Context Denormalization:** For entities where individual user ownership or context is crucial for access (e.g., a `ShipmentRequest` initiated by a specific user), the relevant `ownerId` or `requestorId` is denormalized directly into the document itself (e.g., `requestorId` in `ShipmentRequest`). This allows security rules to evaluate ownership simply by comparing `request.auth.uid` with `resource.data.requestorId`, again, without requiring `get()` calls on other documents like the user's profile.\n\n**Query-Acceptance Patterns (QAPs) Explanation:**\n1.  **Homogeneous Security Posture (Structural Segregation):** Most core application collections (`chemical_inventory`, `chemical_batches`, `hardware_devices`, `alerts`, `compliance_logs`, `usage_logs`) are designed with a homogeneous security posture. This means all documents within these collections share the same authorization rules (e.g., all `ChemicalInventory` documents are readable by 'Viewer' role and writeable by 'Admin'/'Operator' roles). This enables secure `list` operations because if a user has read access to the collection, they can securely query and receive all documents that satisfy the rule without the rule acting as a filter. The client simply lists the collection, and the rule validates the request based on the user's role.\n2.  **User-Specific Item Listing (e.g., ShipmentRequest):** For collections like `/shipment_requests`, where a user might only see their own initiated requests, the security rules will enforce that client-side queries from non-admin/non-operator users *must* include a `where('requestorId', '==', request.auth.uid)` filter. This ensures that the client actively specifies the data they are authorized to access, and the rule validates this intent, adhering to the 'rules are not filters' principle. Admin/Operator roles, having broader access, would not be subject to this filter requirement by the rules.\n\nOverall, this structure uses clear, path-based access for user-specific data, dedicated collections for role management, and denormalization of critical authorization fields to eliminate problematic `get()` calls in security rules, fostering a robust, debuggable, and scalable Firestore backend for ChemGuard AI."
+    ]
   }
 }

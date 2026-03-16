@@ -1,25 +1,7 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * CORE PHILOSOPHY
-     * This ruleset implements a robust Role-Based Access Control (RBAC) system for the ChemGuard AI dashboard.
-     * It prioritizes "Authorization Independence" by using dedicated role collections and denormalized 
-     * ownership fields to ensure high performance and eliminate slow cross-document lookups (get() calls).
-     *
-     * DATA STRUCTURE
-     * - User Profiles: Stored at /users/{userId}.
-     * - Authorization Roles: Determined by the existence of a document in /roles_admin, /roles_operator, or /roles_viewer.
-     * - Global Entities: Inventory, Batches, and Hardware are top-level and managed by elevated roles.
-     * - Activity Entities: Shipment requests, usage logs, alerts, and compliance logs track operational data.
-     *
-     * KEY SECURITY DECISIONS
-     * - Existence over Content: Roles are verified via document existence in specific paths, not fields within the UserProfile.
-     * - Ownership Denormalization: shipment_requests include a 'requestorId' to allow for fast, direct ownership checks.
-     * - Audit Integrity: usage_logs and compliance_logs are designed to be largely immutable once created.
-     * - Prototyping Flexibility: Rules enforce strict authorization (Who) but allow flexible data shapes (What) for rapid iteration.
-     */
 
     // --- HELPER FUNCTIONS ---
 
@@ -35,158 +17,64 @@ service cloud.firestore {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    function isOperator() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_operator/$(request.auth.uid));
+    function isPharma() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_pharma/$(request.auth.uid));
     }
 
-    function isViewer() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_viewer/$(request.auth.uid));
+    function isTransporter() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_transporter/$(request.auth.uid));
     }
 
-    // Elevated access for staff who manage operations
-    function hasElevatedAccess() {
-      return isAdmin() || isOperator();
-    }
-
-    // Basic access for any recognized staff member
     function hasAnyRole() {
-      return isAdmin() || isOperator() || isViewer();
-    }
-
-    // Helper for validating existing resource for updates/deletes
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
+      return isAdmin() || isPharma() || isTransporter();
     }
 
     // --- COLLECTION RULES ---
 
-    /**
-     * @description Rules for user profile documents. Access is restricted to the owner or administrators.
-     * @path /users/{userId}
-     * @allow get, list, create, update: if isOwner(userId);
-     * @deny delete: if request.auth.uid != userId;
-     * @principle Restricts access to a user's own data tree and enforces path-to-data consistency.
-     */
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
-      allow list: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow list: if isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
       allow delete: if isAdmin();
     }
 
-    /**
-     * @description Role collections used for DBAC (Database-based Access Control). Only Admins can modify roles.
-     * @path /roles_{role}/{userId}
-     * @allow get: if isSignedIn();
-     * @deny create, update, delete: if !isAdmin();
-     * @principle Implements "Existence over Content" pattern for secure and performant role checks.
-     */
     match /roles_admin/{userId} {
       allow get, list: if isSignedIn();
       allow create, update, delete: if isAdmin();
     }
-    match /roles_operator/{userId} {
+    match /roles_pharma/{userId} {
       allow get, list: if isSignedIn();
       allow create, update, delete: if isAdmin();
     }
-    match /roles_viewer/{userId} {
+    match /roles_transporter/{userId} {
       allow get, list: if isSignedIn();
       allow create, update, delete: if isAdmin();
     }
 
-    /**
-     * @description Master inventory definitions. Readable by all staff, manageable by Admins and Operators.
-     * @path /chemical_inventory/{chemicalInventoryId}
-     * @allow get, list: if hasAnyRole();
-     * @allow create, update, delete: if hasElevatedAccess();
-     * @principle Role-based access for static master data.
-     */
-    match /chemical_inventory/{chemicalInventoryId} {
+    match /chemical_inventory/{id} {
       allow get, list: if hasAnyRole();
-      allow create: if hasElevatedAccess();
-      allow update, delete: if resource != null && hasElevatedAccess();
+      allow write: if isAdmin() || isPharma();
     }
 
-    /**
-     * @description Specific batches of chemicals. Tracked by quantity and status.
-     * @path /chemical_batches/{chemicalBatchId}
-     * @allow get, list: if hasAnyRole();
-     * @allow create, update, delete: if hasElevatedAccess();
-     * @principle Role-based access for inventory management.
-     */
-    match /chemical_batches/{chemicalBatchId} {
+    match /chemical_batches/{id} {
       allow get, list: if hasAnyRole();
-      allow create: if hasElevatedAccess();
-      allow update, delete: if resource != null && hasElevatedAccess();
+      allow write: if isAdmin() || isPharma();
     }
 
-    /**
-     * @description Chemical shipment requests. Requestors see their own; Admins/Operators see all.
-     * @path /shipment_requests/{shipmentRequestId}
-     * @allow create: if hasElevatedAccess() || (isSignedIn() && request.resource.data.requestorId == request.auth.uid);
-     * @deny update: if resource.data.requestorId != request.auth.uid && !hasElevatedAccess();
-     * @principle Combines ownership and role-based patterns via denormalized requestorId.
-     */
-    match /shipment_requests/{shipmentRequestId} {
-      allow get, list: if hasElevatedAccess() || (resource != null && resource.data.requestorId == request.auth.uid);
-      allow create: if hasElevatedAccess() || (isSignedIn() && request.resource.data.requestorId == request.auth.uid);
-      allow update: if resource != null && (hasElevatedAccess() || resource.data.requestorId == request.auth.uid);
-      allow delete: if resource != null && hasElevatedAccess();
-    }
-
-    /**
-     * @description IoT Hardware device tracking.
-     * @path /hardware_devices/{hardwareDeviceId}
-     * @allow get, list: if hasAnyRole();
-     * @allow create, update, delete: if hasElevatedAccess();
-     * @principle Role-based access for infrastructure monitoring.
-     */
-    match /hardware_devices/{hardwareDeviceId} {
+    match /shipment_requests/{id} {
       allow get, list: if hasAnyRole();
-      allow create: if hasElevatedAccess();
-      allow update, delete: if resource != null && hasElevatedAccess();
+      allow write: if isAdmin() || isPharma() || isTransporter();
     }
 
-    /**
-     * @description Audit logs for chemical usage. Immutable records for compliance.
-     * @path /usage_logs/{usageLogId}
-     * @allow get, list: if hasAnyRole();
-     * @deny update, delete: if true;
-     * @principle Ensures audit integrity by preventing modifications to log history.
-     */
-    match /usage_logs/{usageLogId} {
+    match /usage_logs/{id} {
       allow get, list: if hasAnyRole();
-      allow create: if hasElevatedAccess();
-      allow update, delete: if false;
+      allow create: if isAdmin() || isPharma();
     }
 
-    /**
-     * @description Critical system alerts.
-     * @path /alerts/{alertId}
-     * @allow update: if hasElevatedAccess();
-     * @deny create: if !hasElevatedAccess();
-     * @principle Restricts alert resolution and creation to authorized staff.
-     */
-    match /alerts/{alertId} {
+    match /alerts/{id} {
       allow get, list: if hasAnyRole();
-      allow create: if hasElevatedAccess();
-      allow update: if resource != null && hasElevatedAccess();
-      allow delete: if resource != null && isAdmin();
+      allow write: if isAdmin() || isPharma() || isTransporter();
     }
-
-    /**
-     * @description Records of compliance checks.
-     * @path /compliance_logs/{complianceLogId}
-     * @allow get, list: if hasAnyRole();
-     * @deny update, delete: if true;
-     * @principle Preserves historical compliance data for regulatory review.
-     */
-    match /compliance_logs/{complianceLogId} {
-      allow get, list: if hasAnyRole();
-      allow create: if hasElevatedAccess();
-      allow update, delete: if false;
-    }
-
   }
 }
