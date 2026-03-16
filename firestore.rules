@@ -1,188 +1,113 @@
-/**
- * CHEMGUARD AI TRANSPORT PORTAL - FIRESTORE SECURITY RULES
- *
- * CORE PHILOSOPHY:
- * This ruleset implements a Role-Based Access Control (RBAC) model combined with User-Ownership 
- * for profile management. Access is strictly gated to authenticated staff members.
- *
- * DATA STRUCTURE:
- * The database uses a flat, high-performance architecture with top-level collections for:
- * - /users (Administrative profiles and roles)
- * - /shipments, /vehicles, /drivers (Logistics core data)
- * - /transport_alerts, /compliance_records (Monitoring and auditing)
- * - /locations, /chemical_batches, /iot_devices (Master reference data)
- *
- * KEY SECURITY DECISIONS:
- * 1. Role-Based Authorization: Most write operations require 'Admin' or 'Dispatcher' roles, 
- *    verified by fetching the user's role from their document in the /users collection.
- * 2. Staff-Only Read Access: All logistics and monitoring data is visible to any 
- *    authenticated user with a valid role (Staff), supporting real-time dashboard listeners.
- * 3. Relational Integrity: On creation, documents that contain ID references (e.g., driverId, 
- *    vehicleId) are verified to ensure the data matches the intended relationship.
- * 4. Structural Segregation: High-volume telemetry (IoT) and alerts are separated into 
- *    specialized collections to prevent read-contention and simplify security logic.
- */
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     // --- GLOBAL HELPER FUNCTIONS ---
 
-    /** @description Checks if the request is from a signed-in user. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** @description Checks if the user's UID matches the provided ID. */
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    /** @description Fetches the authenticated user's data from the /users collection. */
     function getUserData() {
-      // Ensure the request.auth.uid exists before attempting to get the document
       return request.auth != null ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data : null;
     }
 
-    /** @description Checks if the user has a specific administrative role. */
-    function hasRole(role) {
-      // Safely access getUserData().role by checking if getUserData() is not null
-      return isSignedIn() && getUserData() != null && getUserData().role == role;
+    function isStaff() {
+      // Expanded to include all demo and production roles for cross-portal visibility
+      return isSignedIn() && getUserData() != null && 
+             getUserData().role in ['admin', 'pharma', 'transporter', 'Admin', 'Dispatcher', 'Monitor'];
     }
 
-    /** @description General check for any authorized staff member. */
-    function isStaff() {
-      // Safely access getUserData().role by checking if getUserData() is not null
-      // Updated to include lowercase roles from the demo initialization
-      return isSignedIn() && getUserData() != null && getUserData().role in ['admin', 'pharma', 'transporter', 'Admin', 'Dispatcher', 'Monitor'];
+    function isAdmin() {
+      return isSignedIn() && getUserData() != null && (getUserData().role == 'admin' || getUserData().role == 'Admin');
     }
 
     // --- COLLECTION RULES ---
 
-    /**
-     * @description Rules for User profiles. Users can manage themselves; Admins manage everyone.
-     * @path /users/{userId}
-     * @allow (get) Any signed-in user fetching their own profile.
-     * @deny (list) Prevent broad user enumeration by non-admins.
-     * @principle Self-creation and ownership for profile data.
-     */
     match /users/{userId} {
-      allow get: if isOwner(userId) || hasRole('admin') || hasRole('Admin');
-      allow list: if hasRole('admin') || hasRole('Admin');
+      allow get: if isOwner(userId) || isStaff();
+      allow list: if isAdmin();
       allow create: if isOwner(userId);
-      allow update: if (isOwner(userId) || hasRole('admin') || hasRole('Admin')) && resource != null;
-      allow delete: if (hasRole('admin') || hasRole('Admin')) && resource != null;
+      allow update: if (isOwner(userId) || isAdmin()) && resource != null;
+      allow delete: if isAdmin() && resource != null;
+      
+      function isOwner(uid) {
+        return isSignedIn() && request.auth.uid == uid;
+      }
     }
 
-    /**
-     * @description Rules for Driver master data.
-     * @path /drivers/{driverId}
-     * @allow (list) All staff members for dashboard display.
-     * @deny (update) Non-admin/dispatcher users.
-     * @principle Staff-wide read access with restricted administrative writes.
-     */
     match /drivers/{driverId} {
       allow get, list: if isStaff();
-      allow create: if hasRole('admin') || hasRole('Admin') || hasRole('Dispatcher');
-      allow update: if (hasRole('admin') || hasRole('Admin') || hasRole('Dispatcher')) && resource != null;
-      allow delete: if (hasRole('admin') || hasRole('Admin')) && resource != null;
+      allow write: if isAdmin();
     }
 
-    /**
-     * @description Rules for Vehicle status and tracking.
-     * @path /vehicles/{vehicleId}
-     * @allow (create) Dispatchers setting up new fleet assets.
-     * @deny (create) Mismatched vehicle IDs in the payload.
-     * @principle Path-to-data consistency for resource identification.
-     */
     match /vehicles/{vehicleId} {
       allow get, list: if isStaff();
-      allow create: if (hasRole('admin') || hasRole('Admin') || hasRole('Dispatcher')) && request.resource.data.id == vehicleId;
-      allow update: if (hasRole('admin') || hasRole('Admin') || hasRole('Dispatcher') || hasRole('transporter')) && resource != null;
-      allow delete: if (hasRole('admin') || hasRole('Admin')) && resource != null;
+      allow write: if isStaff();
     }
 
-    /**
-     * @description Rules for Shipment tracking and management.
-     * @path /shipments/{shipmentId}
-     * @allow (update) Status updates by dispatchers or admins.
-     * @deny (update) Changing the immutable shipment ID.
-     * @principle Immutable relational fields for shipment integrity.
-     */
     match /shipments/{shipmentId} {
       allow get, list: if isStaff();
-      allow create: if (hasRole('admin') || hasRole('Admin') || hasRole('Dispatcher') || hasRole('pharma')) && request.resource.data.id == shipmentId;
-      allow update: if (hasRole('admin') || hasRole('Admin') || hasRole('Dispatcher') || hasRole('transporter')) && resource != null && request.resource.data.id == resource.data.id;
-      allow delete: if (hasRole('admin') || hasRole('Admin')) && resource != null;
+      allow write: if isStaff();
+    }
+    
+    match /shipment_requests/{requestId} {
+      allow get, list: if isStaff();
+      allow write: if isStaff();
     }
 
-    /**
-     * @description Rules for Locations and Checkpoints.
-     * @path /locations/{locationId}
-     * @allow (get) Staff viewing route origins and destinations.
-     * @deny (write) Users without administrative permissions.
-     * @principle Global reference data protection.
-     */
     match /locations/{locationId} {
       allow get, list: if isStaff();
-      allow create: if hasRole('admin') || hasRole('Admin') || hasRole('Dispatcher');
-      allow update: if (hasRole('admin') || hasRole('Admin') || hasRole('Dispatcher')) && resource != null;
-      allow delete: if (hasRole('admin') || hasRole('Admin')) && resource != null;
+      allow write: if isAdmin();
     }
 
-    /**
-     * @description Rules for Chemical Batch details.
-     * @path /chemical_batches/{batchId}
-     * @allow (list) Monitors checking hazmat classifications.
-     * @deny (create) Anonymous or unauthorized users.
-     * @principle Restricted write access for hazardous material records.
-     */
     match /chemical_batches/{batchId} {
       allow get, list: if isStaff();
-      allow create, update, delete: if hasRole('admin') || hasRole('Admin');
+      allow write: if isStaff();
+    }
+    
+    match /chemical_inventory/{invId} {
+      allow get, list: if isStaff();
+      allow write: if isStaff();
     }
 
-    /**
-     * @description Rules for IoT devices and telemetry.
-     * @path /iot_devices/{deviceId}
-     * @allow (get) Real-time GPS and sensor updates for the dashboard.
-     * @deny (write) Any user not explicitly assigned as Admin or Dispatcher.
-     * @principle Integrity of automated sensor data sources.
-     */
     match /iot_devices/{deviceId} {
       allow get, list: if isStaff();
-      allow create: if hasRole('admin') || hasRole('Admin') || hasRole('Dispatcher');
-      allow update: if (hasRole('admin') || hasRole('Admin') || hasRole('Dispatcher')) && resource != null;
-      allow delete: if (hasRole('admin') || hasRole('Admin')) && resource != null;
+      allow write: if isStaff();
+    }
+    
+    // Legacy support for hardware monitoring routes
+    match /hardware_devices/{deviceId} {
+      allow get, list: if isStaff();
+      allow write: if isStaff();
     }
 
-    /**
-     * @description Rules for Transport Alerts and incident reporting.
-     * @path /transport_alerts/{alertId}
-     * @allow (update) A user resolving an alert assigned specifically to them.
-     * @deny (delete) Deletion of safety-critical alert history.
-     * @principle Denormalized ID-based authorization for task resolution.
-     */
     match /transport_alerts/{alertId} {
       allow get, list: if isStaff();
       allow create: if isStaff();
-      allow update: if (hasRole('admin') || hasRole('Admin') || resource.data.assignedToUserId == request.auth.uid) && resource != null;
-      allow delete: if (hasRole('admin') || hasRole('Admin')) && resource != null;
+      allow update: if isStaff();
+      allow delete: if isAdmin();
+    }
+    
+    // Support for the generic 'alerts' collection often used in quick prototypes
+    match /alerts/{alertId} {
+      allow get, list: if isStaff();
+      allow write: if isStaff();
     }
 
-    /**
-     * @description Rules for Compliance Records and scores.
-     * @path /compliance_records/{recordId}
-     * @allow (create) An auditor recording a new safety check.
-     * @deny (update) Modifying historical audit scores by non-admins.
-     * @principle Accountability through user-attribution in compliance data.
-     */
     match /compliance_records/{recordId} {
       allow get, list: if isStaff();
-      allow create: if (hasRole('admin') || hasRole('Admin') || request.resource.data.auditedByUserId == request.auth.uid);
-      allow update: if (hasRole('admin') || hasRole('Admin')) && resource != null;
-      allow delete: if (hasRole('admin') || hasRole('Admin')) && resource != null;
+      allow write: if isStaff();
+    }
+    
+    match /compliance_logs/{logId} {
+      allow get, list: if isStaff();
+      allow write: if isStaff();
+    }
+    
+    match /usage_logs/{logId} {
+      allow get, list: if isStaff();
+      allow write: if isStaff();
     }
   }
 }

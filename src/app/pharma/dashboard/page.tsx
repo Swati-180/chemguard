@@ -1,3 +1,5 @@
+"use client"
+
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { PharmaSidebar } from "@/components/pharma/pharma-sidebar"
 import { PharmaTopBar } from "@/components/pharma/pharma-top-bar"
@@ -6,6 +8,9 @@ import { PharmaDashboardCharts } from "@/components/pharma/pharma-dashboard-char
 import { PharmaQuickActions } from "@/components/pharma/pharma-quick-actions"
 import { PharmaHardwareStatus } from "@/components/pharma/pharma-hardware-status"
 
+/**
+ * Pharma Lab Dashboard - Overview for research and inventory managers.
+ */
 export default function PharmaDashboard() {
   return (
     <SidebarProvider>

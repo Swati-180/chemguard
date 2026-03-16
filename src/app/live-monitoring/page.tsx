@@ -1,3 +1,4 @@
+"use client"
 
 import { DashboardSidebar } from "@/components/dashboard/sidebar-nav"
 import { TopBar } from "@/components/dashboard/top-bar"
@@ -8,6 +9,9 @@ import { ShipmentStatusSummary } from "@/components/monitoring/shipment-status-s
 import { DriverInformation } from "@/components/monitoring/driver-information"
 import { VehicleTrackingTable } from "@/components/monitoring/vehicle-tracking-table"
 
+/**
+ * Live Monitoring Page - Real-time GIS visualization of all active chemical transport units.
+ */
 export default function LiveMonitoringPage() {
   return (
     <SidebarProvider>

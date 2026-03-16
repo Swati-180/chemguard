@@ -1,4 +1,3 @@
-
 "use client"
 
 import {
@@ -20,8 +19,9 @@ import { collection, query, orderBy, limit } from "firebase/firestore"
 export function AlertsMatrixTable() {
   const db = useFirestore()
 
+  // Use 'transport_alerts' which is defined in backend.json and firestore.rules
   const alertsQuery = useMemoFirebase(() => {
-    return query(collection(db, "alerts"), orderBy("timestamp", "desc"), limit(20))
+    return query(collection(db, "transport_alerts"), orderBy("timestamp", "desc"), limit(20))
   }, [db])
 
   const { data: alerts, isLoading, error } = useCollection(alertsQuery)
@@ -109,17 +109,17 @@ export function AlertsMatrixTable() {
               {alerts.map((alert) => (
                 <TableRow key={alert.id} className="border-white/5 hover:bg-white/5 transition-colors group">
                   <TableCell className="py-3 text-[10px] font-mono text-muted-foreground">
-                    {new Date(alert.timestamp).toLocaleTimeString()}
+                    {alert.timestamp ? new Date(alert.timestamp).toLocaleTimeString() : 'N/A'}
                   </TableCell>
                   <TableCell className="py-3">
                     <div className="flex items-center gap-2">
                       <Bell className={cn("w-3 h-3", alert.severity === 'Critical' ? 'text-destructive' : 'text-cyan-400')} />
-                      <span className="text-[10px] text-white font-bold uppercase tracking-tight">{alert.alertType}</span>
+                      <span className="text-[10px] text-white font-bold uppercase tracking-tight">{alert.type || alert.alertType}</span>
                     </div>
                   </TableCell>
                   <TableCell className="py-3 text-[10px] text-white/70">{alert.location}</TableCell>
                   <TableCell className="py-3 text-[10px] font-mono text-cyan-400">
-                    [{alert.alertIdentifier}]
+                    [{alert.shipmentId || alert.id.substring(0, 8)}]
                   </TableCell>
                   <TableCell className="py-3">{getSeverityBadge(alert.severity)}</TableCell>
                   <TableCell className="py-3">{getStatusIndicator(alert.status)}</TableCell>
@@ -144,7 +144,7 @@ export function AlertsMatrixTable() {
               <ChevronLeft className="w-4 h-4 text-white" />
             </button>
             <div className="flex items-center gap-1">
-              <span className="w-6 h-6 rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center text-[10px] font-bold">1</span>
+              <span className="w-6 h-6 rounded bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-[10px] font-bold">1</span>
             </div>
             <button className="p-1 rounded border border-white/10 hover:bg-white/5 disabled:opacity-30" disabled>
               <ChevronRight className="w-4 h-4 text-cyan-400" />

@@ -1,3 +1,5 @@
+"use client"
+
 import { DashboardSidebar } from "@/components/dashboard/sidebar-nav"
 import { TopBar } from "@/components/dashboard/top-bar"
 import { KpiCards } from "@/components/dashboard/kpi-cards"
@@ -7,6 +9,9 @@ import { AiRiskSummary } from "@/components/dashboard/ai-risk-summary"
 import { AlertsTable } from "@/components/dashboard/alerts-table"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 
+/**
+ * Admin Dashboard - Top-level overview for root administrators.
+ */
 export default function AdminDashboard() {
   return (
     <SidebarProvider>

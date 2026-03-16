@@ -1,3 +1,5 @@
+"use client"
+
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { PharmaSidebar } from "@/components/pharma/pharma-sidebar"
 import { PharmaTopBar } from "@/components/pharma/pharma-top-bar"
@@ -7,6 +9,9 @@ import { AlertsMatrixTable } from "@/components/pharma/alerts-matrix-table"
 import { Button } from "@/components/ui/button"
 import { ShieldAlert, History, Download } from "lucide-react"
 
+/**
+ * Pharma Alerts Page - Real-time security and anomaly monitoring for the lab.
+ */
 export default function PharmaAlertsPage() {
   return (
     <SidebarProvider>
