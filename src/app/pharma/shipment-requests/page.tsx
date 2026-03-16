@@ -1,3 +1,5 @@
+"use client"
+
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { PharmaSidebar } from "@/components/pharma/pharma-sidebar"
 import { PharmaTopBar } from "@/components/pharma/pharma-top-bar"
