@@ -60,7 +60,6 @@ export default function LoginPage() {
 
   /**
    * Automatically initializes demo accounts if they don't exist.
-   * Uses a robust sign-in-to-sync strategy.
    */
   const initializeDemoAccounts = async () => {
     if (isInitializing) return
@@ -77,11 +76,11 @@ export default function LoginPage() {
           uid = userCred.user.uid
         } catch (error: any) {
           // 2. If user exists, sign in to get the UID and sync profile
-          if (error.code === 'auth/email-already-in-use') {
+          if (error.code === 'auth/email-already-use' || error.code === 'auth/email-already-in-use') {
             const userCred = await signInWithEmailAndPassword(auth, account.email, account.password)
             uid = userCred.user.uid
           } else {
-            continue // Skip unknown errors
+            continue 
           }
         }
 
@@ -105,7 +104,7 @@ export default function LoginPage() {
         }
       }
       
-      // Always sign out after bulk init to clear the "interim" user state
+      // Clear interim session to avoid confusing the main auth observer
       await signOut(auth)
       setInitComplete(true)
       localStorage.setItem('chemguard_demo_init', 'true')
@@ -115,7 +114,7 @@ export default function LoginPage() {
         description: "Demo accounts and security roles have been provisioned."
       })
     } catch (error) {
-      // Errors handled silently to avoid buffering hang
+      // Catch initialization errors silently
     } finally {
       setIsInitializing(false)
     }
@@ -131,7 +130,7 @@ export default function LoginPage() {
     }
   }, [])
 
-  // Automatic redirect if already logged in (only runs when NOT initializing)
+  // Automatic redirect if already logged in
   React.useEffect(() => {
     if (!isUserLoading && user && !isInitializing && !isVerifying && initComplete) {
       const fetchRoleAndRedirect = async () => {
@@ -144,7 +143,7 @@ export default function LoginPage() {
             else if (role === 'transporter') router.push("/transport/dashboard")
             else await signOut(auth)
           } else {
-            // Profile missing, user might be in a bad state
+            // Profile missing, allow re-auth to attempt repair
             await signOut(auth)
           }
         } catch (error) {
@@ -161,11 +160,14 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, creds.email, creds.password)
+      // Success will trigger the redirect useEffect above once isVerifying is set to false
+      setIsVerifying(false)
     } catch (error: any) {
       // If login fails, try a quick re-init and retry once
       try {
         await initializeDemoAccounts()
         await signInWithEmailAndPassword(auth, creds.email, creds.password)
+        setIsVerifying(false)
       } catch (retryError: any) {
         setIsVerifying(false)
         toast({ 
@@ -177,11 +179,10 @@ export default function LoginPage() {
     }
   }
 
-  // Loading Screen for Auth initialization or portal verification
+  // Loading Screen
   if (isUserLoading || isVerifying || isInitializing) {
     return (
       <div className="min-h-screen w-full bg-[#0a0f18] flex flex-col items-center justify-center p-6 relative overflow-hidden">
-        {/* Background hex pattern */}
         <div className="absolute inset-0 opacity-10 pointer-events-none">
           <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -213,7 +214,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen w-full bg-[#0a0f18] flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      {/* Background patterns and glows */}
       <div className="absolute inset-0 opacity-20 pointer-events-none">
         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
           <defs>

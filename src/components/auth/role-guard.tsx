@@ -1,10 +1,11 @@
 "use client"
 
-import { useUser, useFirestore } from "@/firebase"
+import { useUser, useFirestore, useAuth } from "@/firebase"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { doc, getDoc } from "firebase/firestore"
 import { Skeleton } from "@/components/ui/skeleton"
+import { signOut } from "firebase/auth"
 
 interface RoleGuardProps {
   children: React.ReactNode
@@ -13,10 +14,10 @@ interface RoleGuardProps {
 
 /**
  * RoleGuard component protects client-side routes by checking the user's role in Firestore.
- * It handles loading states and redirects unauthorized users to their appropriate dashboard.
  */
 export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
   const { user, isUserLoading } = useUser()
+  const auth = useAuth()
   const db = useFirestore()
   const router = useRouter()
   const [isAuthorized, setIsAuthorized] = useState(false)
@@ -25,7 +26,6 @@ export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
   useEffect(() => {
     if (isUserLoading) return
 
-    // Redirect to login if not authenticated
     if (!user) {
       router.push("/login")
       return
@@ -43,19 +43,18 @@ export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
           if (allowedRoles.includes(userRole)) {
             setIsAuthorized(true)
           } else {
-            // Unauthorized for this section, redirect to their specific portal
-            if (userRole === 'admin') {
-              router.push("/admin/dashboard")
-            } else if (userRole === 'pharma') {
-              router.push("/pharma/dashboard")
-            } else if (userRole === 'transporter') {
-              router.push("/transport/dashboard")
-            } else {
+            // Unauthorized for this section, redirect to appropriate portal
+            if (userRole === 'admin') router.push("/admin/dashboard")
+            else if (userRole === 'pharma') router.push("/pharma/dashboard")
+            else if (userRole === 'transporter') router.push("/transport/dashboard")
+            else {
+              await signOut(auth)
               router.push("/login")
             }
           }
         } else {
-          // No profile found in Firestore
+          // Profile missing in Firestore, sign out to prevent loops and go to login
+          await signOut(auth)
           router.push("/login")
         }
       } catch (error) {
@@ -66,9 +65,8 @@ export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
     }
 
     checkRole()
-  }, [user, isUserLoading, allowedRoles, db, router])
+  }, [user, isUserLoading, allowedRoles, db, router, auth])
 
-  // Show technical loading UI during verification
   if (isUserLoading || checkingRole) {
     return (
       <div className="min-h-screen bg-[#0a0f18] flex items-center justify-center p-6 relative overflow-hidden">
