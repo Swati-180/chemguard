@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -35,7 +34,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 const navItems = [
-  { title: "Dashboard", icon: LayoutDashboard, href: "/" },
+  { title: "Dashboard", icon: LayoutDashboard, href: "/admin/dashboard" },
   { title: "Live Monitoring", icon: Activity, href: "/live-monitoring" },
   { title: "Chemicals", icon: Beaker, href: "/chemicals" },
   { title: "Shipments", icon: Truck, href: "/shipments" },
@@ -89,25 +88,6 @@ export function DashboardSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-4 group-data-[collapsible=icon]:hidden">
-        <div className="bg-white/5 rounded-xl border border-white/5 p-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-9 w-9 border border-primary/20">
-              <AvatarImage src="https://picsum.photos/seed/admin/40/40" />
-              <AvatarFallback>EV</AvatarFallback>
-            </Avatar>
-            <div className="text-left">
-              <p className="text-xs font-bold text-white">Dr. Elena Vance</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-tighter">Admin Operations</p>
-            </div>
-          </div>
-          <Link href="/login">
-            <button className="text-muted-foreground hover:text-destructive transition-colors">
-              <LogOut className="w-4 h-4" />
-            </button>
-          </Link>
-        </div>
-      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   )

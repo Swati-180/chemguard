@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -14,7 +13,6 @@ import {
   User,
   ArrowRight,
   ShieldCheck,
-  CheckCircle2,
   Navigation
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -24,9 +22,15 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { useAuth, useFirestore } from "@/firebase"
+import { signInWithEmailAndPassword } from "firebase/auth"
+import { doc, getDoc } from "firebase/firestore"
 
 export default function LoginPage() {
   const router = useRouter()
+  const auth = useAuth()
+  const db = useFirestore()
+  
   const [showPassword, setShowPassword] = React.useState<Record<string, boolean>>({
     admin: false,
     pharma: false,
@@ -34,9 +38,9 @@ export default function LoginPage() {
   })
 
   const [credentials, setCredentials] = React.useState({
-    admin: { username: "", password: "" },
-    pharma: { username: "", password: "" },
-    transporter: { username: "", password: "" }
+    admin: { email: "", password: "" },
+    pharma: { email: "", password: "" },
+    transporter: { email: "", password: "" }
   })
 
   const togglePassword = (portal: string) => {
@@ -50,23 +54,54 @@ export default function LoginPage() {
     }))
   }
 
-  const handleLogin = (portal: string) => {
-    const { username, password } = credentials[portal as keyof typeof credentials]
+  const handleLogin = async (portal: string) => {
+    const { email, password } = credentials[portal as keyof typeof credentials]
 
-    if (portal === 'admin' && username === 'admin' && password === 'admin123') {
-      toast({ title: "Access Granted", description: "Entering Admin Neural Operations Hub..." })
-      router.push("/")
-    } else if (portal === 'pharma' && username === 'pharma' && password === 'pharma123') {
-      toast({ title: "Access Granted", description: "Entering Pharmaceutical Control Hub..." })
-      router.push("/pharma/dashboard")
-    } else if (portal === 'transporter' && username === 'transporter' && password === 'trans123') {
-      toast({ title: "Access Granted", description: "Entering Logistics Monitoring Hub..." })
-      router.push("/shipments")
-    } else {
+    if (!email || !password) {
+      toast({ 
+        variant: "destructive", 
+        title: "Missing Credentials", 
+        description: "Please enter both email and password." 
+      })
+      return
+    }
+
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+      const user = userCredential.user
+
+      // Retrieve user profile from Firestore
+      const userDocRef = doc(db, "users", user.uid)
+      const userDoc = await getDoc(userDocRef)
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data()
+        const role = userData.role
+
+        toast({ title: "Access Granted", description: `Welcome back, ${userData.name || 'User'}.` })
+
+        // Role-based redirection
+        if (role === 'admin') {
+          router.push("/admin/dashboard")
+        } else if (role === 'pharma') {
+          router.push("/pharma/dashboard")
+        } else if (role === 'transporter') {
+          router.push("/transport/dashboard")
+        } else {
+          router.push("/")
+        }
+      } else {
+        toast({ 
+          variant: "destructive", 
+          title: "Profile Not Found", 
+          description: "Authenticated but no profile record found in system." 
+        })
+      }
+    } catch (error: any) {
       toast({ 
         variant: "destructive", 
         title: "Access Denied", 
-        description: "Invalid credentials for this security clearance level." 
+        description: error.message || "Invalid credentials for this security clearance level." 
       })
     }
   }
@@ -112,11 +147,11 @@ export default function LoginPage() {
           icon={Settings}
           color="primary"
           badges={["ISO 27001 Certified", "Multi-Factor Auth"]}
-          demoCreds="admin / admin123"
+          demoCreds="admin@chemguard.ai / admin123"
           onLogin={() => handleLogin('admin')}
-          username={credentials.admin.username}
+          email={credentials.admin.email}
           password={credentials.admin.password}
-          onUserChange={(v) => handleInputChange('admin', 'username', v)}
+          onEmailChange={(v) => handleInputChange('admin', 'email', v)}
           onPassChange={(v) => handleInputChange('admin', 'password', v)}
           showPass={showPassword.admin}
           togglePass={() => togglePassword('admin')}
@@ -130,11 +165,11 @@ export default function LoginPage() {
           icon={Beaker}
           color="accent"
           badges={["FDA Compliant Logging", "Encrypted Storage"]}
-          demoCreds="pharma / pharma123"
+          demoCreds="pharma@chemguard.ai / pharma123"
           onLogin={() => handleLogin('pharma')}
-          username={credentials.pharma.username}
+          email={credentials.pharma.email}
           password={credentials.pharma.password}
-          onUserChange={(v) => handleInputChange('pharma', 'username', v)}
+          onEmailChange={(v) => handleInputChange('pharma', 'email', v)}
           onPassChange={(v) => handleInputChange('pharma', 'password', v)}
           showPass={showPassword.pharma}
           togglePass={() => togglePassword('pharma')}
@@ -148,11 +183,11 @@ export default function LoginPage() {
           icon={Truck}
           color="orange"
           badges={["Real-Time GPS Validated", "Checkpoint Verification"]}
-          demoCreds="transporter / trans123"
+          demoCreds="transporter@chemguard.ai / trans123"
           onLogin={() => handleLogin('transporter')}
-          username={credentials.transporter.username}
+          email={credentials.transporter.email}
           password={credentials.transporter.password}
-          onUserChange={(v) => handleInputChange('transporter', 'username', v)}
+          onEmailChange={(v) => handleInputChange('transporter', 'email', v)}
           onPassChange={(v) => handleInputChange('transporter', 'password', v)}
           showPass={showPassword.transporter}
           togglePass={() => togglePassword('transporter')}
@@ -176,9 +211,9 @@ interface PortalCardProps {
   badges: string[]
   demoCreds: string
   onLogin: () => void
-  username: string
+  email: string
   password: string
-  onUserChange: (v: string) => void
+  onEmailChange: (v: string) => void
   onPassChange: (v: string) => void
   showPass: boolean
   togglePass: () => void
@@ -193,9 +228,9 @@ function PortalCard({
   badges, 
   demoCreds, 
   onLogin,
-  username,
+  email,
   password,
-  onUserChange,
+  onEmailChange,
   onPassChange,
   showPass,
   togglePass,
@@ -244,15 +279,15 @@ function PortalCard({
         <div className="space-y-4 pt-4">
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Username</Label>
+              <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Email</Label>
               {color === 'accent' && <span className="text-[8px] font-bold text-accent uppercase">FDA Compliant Logging</span>}
             </div>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
               <Input 
-                placeholder="Enter username" 
-                value={username}
-                onChange={(e) => onUserChange(e.target.value)}
+                placeholder="Enter email" 
+                value={email}
+                onChange={(e) => onEmailChange(e.target.value)}
                 className="pl-10 h-11 bg-white/5 border-white/10 focus-visible:ring-primary/50 text-sm" 
               />
             </div>
