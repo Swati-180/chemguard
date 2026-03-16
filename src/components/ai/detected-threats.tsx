@@ -3,80 +3,101 @@
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ShieldAlert, MapPin, Brain, Activity } from "lucide-react"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { BrainCircuit, ChevronLeft, ChevronRight } from "lucide-react"
+import { cn } from "@/lib/utils"
 
-const threats = [
+const activity = [
   {
-    id: "SH-9283",
-    location: "Berlin (DE)",
-    type: "Unexpected Route Change",
-    confidence: 98.4,
-    severity: "High"
+    timestamp: "2024-10-14 19:23",
+    entity: "Batch B001 - Sulfur Dioxide Precursor",
+    action: "unexpected stop",
+    user: "Driver K. Kumar",
+    location: "Route Checkpoint 3",
+    status: "Investigating"
   },
   {
-    id: "SH-4012",
-    location: "Rotterdam (NL)",
-    type: "Chemical Usage Spike",
-    confidence: 85.2,
-    severity: "Medium"
+    timestamp: "2024-10-14 19:29",
+    entity: "Batch B001 - Sulfur Dioxide Precursor",
+    action: "unexpected inventory change",
+    user: "Driver K. Kumar",
+    location: "Route Checkpoint 3",
+    status: "Flagged (Critical)"
   },
   {
-    id: "SH-1102",
-    location: "Paris (FR)",
-    type: "Temperature Anomaly",
-    confidence: 92.1,
-    severity: "High"
+    timestamp: "2024-10-14 19:21",
+    entity: "Batch B001 - Sulfur Dioxide Precursor",
+    action: "unexpected stop",
+    user: "Driver K. Kumar",
+    location: "Route Checkpoint 2",
+    status: "Resolved"
   },
   {
-    id: "SH-8821",
-    location: "Antwerp (BE)",
-    type: "Tamper Sensor Trigger",
-    confidence: 76.8,
-    severity: "Medium"
+    timestamp: "2024-10-14 19:30",
+    entity: "Batch B001 - Sulfur Dioxide Precursor",
+    action: "unexpected stop",
+    user: "Driver K. Kumar",
+    location: "Route Checkpoint 3",
+    status: "Resolved"
   }
 ]
 
 export function AiDetectedThreats() {
   return (
-    <Card className="glass-card h-full">
-      <CardHeader className="py-4 border-b border-white/5 bg-white/5">
+    <Card className="glass-card h-full border-white/5 bg-white/5">
+      <CardHeader className="py-4 border-b border-white/5">
         <div className="flex items-center gap-2">
-          <ShieldAlert className="w-5 h-5 text-destructive" />
-          <CardTitle className="text-sm font-headline font-bold text-white uppercase tracking-widest">AI Detected Threat Intel</CardTitle>
+          <CardTitle className="text-sm font-headline font-bold text-white uppercase tracking-widest">Suspicious Activity Detection</CardTitle>
         </div>
       </CardHeader>
-      <CardContent className="p-4 space-y-4">
-        {threats.map((threat) => (
-          <div key={threat.id} className="p-4 bg-white/5 border border-white/5 rounded-xl hover:border-white/20 transition-all group relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
-              <Brain className="w-12 h-12 text-primary" />
-            </div>
-            <div className="flex items-start justify-between mb-3">
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold text-primary uppercase">Shipment {threat.id}</p>
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-white">
-                  <Activity className="w-3 h-3 text-accent" />
-                  {threat.type}
-                </div>
-              </div>
-              <Badge className={cn(
-                "h-6 text-[10px] uppercase font-bold",
-                threat.severity === 'High' ? 'bg-destructive/10 text-destructive border-destructive/20' : 'bg-orange-400/10 text-orange-400 border-orange-400/20'
-              )}>
-                {threat.severity}
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between mt-4">
-              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase">
-                <MapPin className="w-3 h-3" />
-                {threat.location}
-              </div>
-              <div className="text-[10px] font-bold text-accent">
-                AI Confidence: {threat.confidence}%
-              </div>
-            </div>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-white/5 hover:bg-transparent">
+              <TableHead className="text-[10px] font-bold uppercase py-4">Timestamp</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase py-4">Entity</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase py-4">Action</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase py-4">User</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase py-4">Location</TableHead>
+              <TableHead className="text-[10px] font-bold uppercase py-4">Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {activity.map((item, i) => (
+              <TableRow key={i} className="border-white/5 hover:bg-white/5 transition-colors">
+                <TableCell className="py-4 text-[10px] text-muted-foreground font-mono">{item.timestamp}</TableCell>
+                <TableCell className="py-4 text-[10px] text-white font-medium">{item.entity}</TableCell>
+                <TableCell className="py-4 text-[10px] text-muted-foreground">{item.action}</TableCell>
+                <TableCell className="py-4 text-[10px] text-white">{item.user}</TableCell>
+                <TableCell className="py-4 text-[10px] text-muted-foreground">{item.location}</TableCell>
+                <TableCell className="py-4">
+                  <Badge className={cn(
+                    "text-[8px] h-5 px-1.5 uppercase font-bold",
+                    item.status === 'Investigating' ? 'bg-orange-400/20 text-orange-400 border-orange-400/30' :
+                    item.status === 'Flagged (Critical)' ? 'bg-destructive/20 text-destructive border-destructive/30' :
+                    'bg-accent/20 text-accent border-accent/30'
+                  )}>
+                    {item.status}
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <div className="flex items-center justify-center gap-4 py-4 border-t border-white/5">
+          <ChevronLeft className="w-3 h-3 text-muted-foreground cursor-pointer" />
+          <div className="flex items-center gap-2">
+            <span className="w-6 h-6 rounded bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold">1</span>
           </div>
-        ))}
+          <ChevronRight className="w-3 h-3 text-muted-foreground cursor-pointer" />
+        </div>
       </CardContent>
     </Card>
   )

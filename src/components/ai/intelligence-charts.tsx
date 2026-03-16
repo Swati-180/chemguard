@@ -1,100 +1,99 @@
 
 "use client"
 
-import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Scatter, ScatterChart, ZAxis } from "recharts"
+import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 
-const anomalyData = [
-  { time: "08:00", usage: 40 },
-  { time: "10:00", usage: 38 },
-  { time: "12:00", usage: 85 },
-  { time: "14:00", usage: 45 },
-  { time: "16:00", usage: 42 },
-  { time: "18:00", usage: 92 },
-  { time: "20:00", usage: 48 },
+const demandData = [
+  { month: "Jan", historical: 100, forecast: 110 },
+  { month: "Feb", historical: 120, forecast: 130 },
+  { month: "Mar", historical: 140, forecast: 120 },
+  { month: "Apr", historical: 110, forecast: 160 },
+  { month: "May", historical: 160, forecast: 140 },
+  { month: "June", historical: 240, forecast: 180 },
 ]
 
 const riskTrendData = [
-  { time: "Mon", risk: 20 },
-  { time: "Tue", risk: 25 },
-  { time: "Wed", risk: 60 },
-  { time: "Thu", risk: 40 },
-  { time: "Fri", risk: 35 },
-  { time: "Sat", risk: 15 },
-  { time: "Sun", risk: 10 },
-]
-
-const deviationData = [
-  { x: 10, y: 15, id: 'SH-102' },
-  { x: 45, y: 50, id: 'SH-205' },
-  { x: 30, y: 35, id: 'SH-310' },
-  { x: 70, y: 90, id: 'SH-412' }, // Outlier
-  { x: 20, y: 22, id: 'SH-515' },
-  { x: 85, y: 20, id: 'SH-620' }, // Outlier
+  { month: "Jan", r1: 0.1, r2: 0.05, r3: 0.02 },
+  { month: "Feb", r1: 0.15, r2: 0.08, r3: 0.05 },
+  { month: "Mar", r1: 0.12, r2: 0.1, r3: 0.08 },
+  { month: "Apr", r1: 0.35, r2: 0.55, r3: 0.25 },
+  { month: "May", r1: 0.18, r2: 0.2, r3: 0.45 },
+  { month: "June", r1: 0.1, r2: 0.05, r3: 0.15 },
 ]
 
 export function AiIntelligenceCharts() {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <Card className="glass-card">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <Card className="glass-card border-white/5 bg-white/5">
         <CardHeader className="py-4 border-b border-white/5">
-          <CardTitle className="text-[10px] font-headline font-bold text-primary uppercase tracking-widest">Chemical Demand Anomaly Detection</CardTitle>
+          <CardTitle className="text-sm font-headline font-bold text-white uppercase tracking-widest leading-tight">
+            Chemical Demand Anomaly Prediction <br />
+            <span className="text-[10px] text-muted-foreground normal-case tracking-normal">(Forecast vs. Actual)</span>
+          </CardTitle>
         </CardHeader>
-        <CardContent className="h-[250px] pt-6">
+        <CardContent className="h-[300px] pt-6">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={anomalyData}>
+            <LineChart data={demandData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-              <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{fill: 'rgba(255,255,255,0.3)', fontSize: 9}} />
+              <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{fill: 'rgba(255,255,255,0.3)', fontSize: 9}} />
               <YAxis axisLine={false} tickLine={false} tick={{fill: 'rgba(255,255,255,0.3)', fontSize: 9}} />
               <Tooltip 
                 contentStyle={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
                 itemStyle={{ fontSize: '10px' }}
               />
-              <Line type="monotone" dataKey="usage" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ fill: 'hsl(var(--primary))', r: 3 }} />
+              <Line type="monotone" dataKey="historical" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4, fill: 'hsl(var(--primary))' }} />
+              <Line type="monotone" dataKey="forecast" stroke="hsl(var(--accent))" strokeWidth={2} dot={{ r: 4, fill: 'hsl(var(--accent))' }} />
             </LineChart>
           </ResponsiveContainer>
+          <div className="flex items-center gap-4 mt-2 text-[8px] uppercase font-bold tracking-widest text-muted-foreground">
+             <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-primary" /> Historical Usage</div>
+             <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-accent" /> AI Forecast Baseline</div>
+          </div>
         </CardContent>
       </Card>
 
-      <Card className="glass-card">
+      <Card className="glass-card border-white/5 bg-white/5">
         <CardHeader className="py-4 border-b border-white/5">
-          <CardTitle className="text-[10px] font-headline font-bold text-accent uppercase tracking-widest">Predicted Shipment Risk Trend</CardTitle>
+          <CardTitle className="text-sm font-headline font-bold text-white uppercase tracking-widest leading-tight">
+            Shipment Risk Trend by Route <br />
+            <span className="text-[10px] text-muted-foreground normal-case tracking-normal">(6 Months)</span>
+          </CardTitle>
         </CardHeader>
-        <CardContent className="h-[250px] pt-6">
+        <CardContent className="h-[300px] pt-6">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={riskTrendData}>
+            <AreaChart data={riskTrendData}>
+              <defs>
+                <linearGradient id="grad1" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#fb923c" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#fb923c" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="grad2" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#eab308" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#eab308" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="grad3" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-              <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{fill: 'rgba(255,255,255,0.3)', fontSize: 9}} />
+              <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{fill: 'rgba(255,255,255,0.3)', fontSize: 9}} />
               <YAxis axisLine={false} tickLine={false} tick={{fill: 'rgba(255,255,255,0.3)', fontSize: 9}} />
               <Tooltip 
                 contentStyle={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
                 itemStyle={{ fontSize: '10px' }}
               />
-              <Line type="step" dataKey="risk" stroke="hsl(var(--accent))" strokeWidth={2} dot={{ fill: 'hsl(var(--accent))', r: 3 }} />
-            </LineChart>
+              <Area type="monotone" dataKey="r1" stroke="#fb923c" fillOpacity={1} fill="url(#grad1)" />
+              <Area type="monotone" dataKey="r2" stroke="#eab308" fillOpacity={1} fill="url(#grad2)" />
+              <Area type="monotone" dataKey="r3" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#grad3)" />
+            </AreaChart>
           </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      <Card className="glass-card">
-        <CardHeader className="py-4 border-b border-white/5">
-          <CardTitle className="text-[10px] font-headline font-bold text-destructive uppercase tracking-widest">Route Deviation Analysis (Scatter)</CardTitle>
-        </CardHeader>
-        <CardContent className="h-[250px] pt-6">
-          <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-              <XAxis type="number" dataKey="x" hide />
-              <YAxis type="number" dataKey="y" hide />
-              <ZAxis type="number" range={[50, 400]} />
-              <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-              <Scatter name="Shipments" data={deviationData} fill="hsl(var(--destructive))">
-                 {deviationData.map((entry, index) => (
-                   <circle key={`cell-${index}`} cx={entry.x} cy={entry.y} r={entry.x > 60 || entry.y < 30 ? 6 : 3} fill={entry.x > 60 || entry.y < 30 ? 'hsl(var(--destructive))' : 'hsl(var(--accent))'} />
-                 ))}
-              </Scatter>
-            </ScatterChart>
-          </ResponsiveContainer>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[8px] uppercase font-bold tracking-widest text-muted-foreground">
+             <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-orange-400" /> Route 1: BASF to Transporter Y</div>
+             <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-yellow-400" /> Route 2: Munich to PharmaLab X</div>
+             <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-primary" /> Route 3: BASF to PharmaLab X</div>
+          </div>
         </CardContent>
       </Card>
     </div>
