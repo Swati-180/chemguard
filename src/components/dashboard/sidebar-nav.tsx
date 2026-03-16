@@ -58,7 +58,7 @@ export function DashboardSidebar() {
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center neon-glow-cyan">
             <ShieldCheck className="w-5 h-5 text-primary-foreground" />
           </div>
-          <span className="font-headline font-bold text-xl tracking-tight group-data-[collapsible=icon]:hidden">
+          <span className="font-headline font-bold text-xl tracking-tight group-data-[collapsible=icon]:hidden text-white">
             ChemGuard <span className="text-primary">AI</span>
           </span>
         </div>
@@ -101,9 +101,11 @@ export function DashboardSidebar() {
               <p className="text-[10px] text-muted-foreground uppercase tracking-tighter">Admin Operations</p>
             </div>
           </div>
-          <button className="text-muted-foreground hover:text-destructive transition-colors">
-            <LogOut className="w-4 h-4" />
-          </button>
+          <Link href="/login">
+            <button className="text-muted-foreground hover:text-destructive transition-colors">
+              <LogOut className="w-4 h-4" />
+            </button>
+          </Link>
         </div>
       </SidebarFooter>
       <SidebarRail />
