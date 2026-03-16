@@ -76,5 +76,10 @@ service cloud.firestore {
       allow get, list: if hasAnyRole();
       allow write: if isAdmin() || isPharma() || isTransporter();
     }
+
+    match /hardware_devices/{id} {
+      allow get, list: if hasAnyRole();
+      allow write: if isAdmin();
+    }
   }
 }

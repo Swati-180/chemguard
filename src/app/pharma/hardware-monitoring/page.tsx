@@ -1,25 +1,23 @@
+
 "use client"
 
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { PharmaSidebar } from "@/components/pharma/pharma-sidebar"
 import { PharmaTopBar } from "@/components/pharma/pharma-top-bar"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Thermometer, Droplets, Lock, Video, MoreHorizontal, Circle } from "lucide-react"
+import { Thermometer, Droplets, Lock, Video, MoreHorizontal, Circle, Database, Plus } from "lucide-react"
 import { 
   Area, AreaChart, 
   Bar, BarChart, 
   ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell 
 } from "recharts"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
+import { DeviceAlertsTable } from "@/components/hardware/device-alerts-table"
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { useFirestore } from "@/firebase"
+import { collection, doc } from "firebase/firestore"
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates"
+import { toast } from "@/hooks/use-toast"
 
 const deviceCards = [
   { title: "Temperature Sensors", icon: Thermometer, total: 2500, online: 2410, offline: 90, alerts: 3, color: "text-cyan-400", border: "border-cyan-500/20" },
@@ -55,14 +53,29 @@ const healthData = [
   { name: "Critical", value: 10, color: "#ef4444" },
 ]
 
-const inventory = [
-  { id: "TS-0034", type: "Temperature", location: "R&D Lab", status: "Online", signal: "13:33:23 18:39:56", icon: Thermometer },
-  { id: "CAM-012", type: "Camera", location: "Cold Storage 2", status: "Offline", signal: "13:32:23 19:29:37", icon: Video },
-  { id: "CAM-013", type: "Camera", location: "R&D Lab", status: "Online", signal: "13:33:23 18:39:30", icon: Video },
-  { id: "TS-0035", type: "Temperature", location: "R&D Lab", status: "Online", signal: "13:33:23 18:39:56", icon: Thermometer },
-]
-
 export default function HardwareMonitoringPage() {
+  const db = useFirestore()
+
+  const handleSeedDevices = () => {
+    const devicesRef = collection(db, "hardware_devices")
+    const demoDevices = [
+      { id: "dev_001", deviceId: "TS-0034", deviceType: "Temperature", location: "R&D Lab", status: "Online", lastSignal: new Date().toISOString(), alertStatus: "None" },
+      { id: "dev_002", deviceId: "CAM-012", deviceType: "Camera", location: "Cold Storage 2", status: "Offline", lastSignal: new Date(Date.now() - 7200000).toISOString(), alertStatus: "None" },
+      { id: "dev_003", deviceId: "CAM-013", deviceType: "Camera", location: "R&D Lab", status: "Online", lastSignal: new Date().toISOString(), alertStatus: "None" },
+      { id: "dev_004", deviceId: "TS-0035", deviceType: "Temperature", location: "R&D Lab", status: "Online", lastSignal: new Date().toISOString(), alertStatus: "None" },
+      { id: "dev_005", deviceId: "GPS-882", deviceType: "GPS", location: "Maritime Unit 4", status: "Signal Low", lastSignal: new Date(Date.now() - 840000).toISOString(), alertStatus: "Warning" },
+    ]
+
+    demoDevices.forEach(device => {
+      setDocumentNonBlocking(doc(devicesRef, device.id), device, { merge: true })
+    })
+
+    toast({
+      title: "Hardware Relay Initialized",
+      description: "Provisioning demo devices to secure hardware registry.",
+    })
+  }
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full overflow-hidden bg-[#0a0f18]">
@@ -70,9 +83,24 @@ export default function HardwareMonitoringPage() {
         <SidebarInset className="flex flex-col flex-1 overflow-y-auto bg-transparent">
           <PharmaTopBar />
           <main className="flex-1 p-6 space-y-6">
-            <header className="flex items-center justify-between">
-              <h1 className="text-2xl font-headline font-bold text-white tracking-tight">Hardware Monitoring</h1>
-              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Current 14, 2024, 12:58 PM</p>
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div className="space-y-1">
+                <h1 className="text-2xl font-headline font-bold text-white tracking-tight">Hardware Monitoring</h1>
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">IoT Device Health & Sensor Analytics | SOC Console v1.2.0</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Button 
+                  onClick={handleSeedDevices}
+                  className="bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 font-headline font-semibold h-10 px-4 gap-2 text-xs"
+                >
+                  <Database className="h-3.5 w-3.5" />
+                  Sync Device Registry
+                </Button>
+                <Button className="bg-accent/20 text-accent border border-accent/30 hover:bg-accent/30 font-headline font-semibold h-10 px-4 gap-2 text-xs">
+                  <Plus className="h-3.5 w-3.5" />
+                  Register New Device
+                </Button>
+              </div>
             </header>
 
             {/* Row 1: Device Cards */}
@@ -87,9 +115,9 @@ export default function HardwareMonitoringPage() {
                       <p className="text-[11px] font-bold text-white uppercase tracking-widest leading-none mb-2">{card.title}</p>
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
                         <div className="flex justify-between"><span>Total:</span> <span className="text-white font-bold">{card.total}</span></div>
-                        <div className="flex justify-between"><span>Oniine:</span> <span className="text-emerald-400 font-bold">{card.online}</span></div>
-                        <div className="flex justify-between"><span>Offiine:</span> <span className="text-red-400 font-bold">{card.offline}</span></div>
-                        <div className="flex justify-between"><span>Active Alerts:</span> <span className="text-red-400 font-bold">{card.alerts}</span></div>
+                        <div className="flex justify-between"><span>Online:</span> <span className="text-emerald-400 font-bold">{card.online}</span></div>
+                        <div className="flex justify-between"><span>Offline:</span> <span className="text-red-400 font-bold">{card.offline}</span></div>
+                        <div className="flex justify-between"><span>Alerts:</span> <span className="text-red-400 font-bold">{card.alerts}</span></div>
                       </div>
                     </div>
                   </CardContent>
@@ -178,51 +206,12 @@ export default function HardwareMonitoringPage() {
             </div>
 
             {/* Row 3: Table and Map */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              <Card className="lg:col-span-8 glass-card bg-[#111827]/40 border-white/5">
-                <CardHeader className="py-4 flex flex-row items-center justify-between border-b border-white/5">
-                  <CardTitle className="text-xs font-headline font-bold text-white uppercase tracking-widest">Device Inventory & Status</CardTitle>
-                  <MoreHorizontal className="w-4 h-4 text-muted-foreground/50 cursor-pointer" />
-                </CardHeader>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader className="bg-white/5">
-                      <TableRow className="border-white/5 hover:bg-transparent">
-                        <TableHead className="text-[10px] font-bold uppercase py-4">Device ID &darr;</TableHead>
-                        <TableHead className="text-[10px] font-bold uppercase py-4">Device Type</TableHead>
-                        <TableHead className="text-[10px] font-bold uppercase py-4">Location</TableHead>
-                        <TableHead className="text-[10px] font-bold uppercase py-4">Status</TableHead>
-                        <TableHead className="text-[10px] font-bold uppercase py-4">Last Signal</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {inventory.map((item) => (
-                        <TableRow key={item.id} className="border-white/5 hover:bg-white/5 transition-colors">
-                          <TableCell className="py-4 text-[11px] font-mono font-bold text-white">{item.id}</TableCell>
-                          <TableCell className="py-4">
-                            <div className="flex items-center gap-2">
-                              <item.icon className="w-3.5 h-3.5 text-cyan-400" />
-                              <span className="text-[11px] text-muted-foreground">Icon+text</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="py-4 text-[11px] text-muted-foreground">{item.location}</TableCell>
-                          <TableCell className="py-4">
-                            <Badge className={cn(
-                              "text-[9px] h-6 px-3 uppercase font-bold",
-                              item.status === 'Online' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'
-                            )}>
-                              {item.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="py-4 text-[11px] font-mono text-muted-foreground">{item.signal}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-8">
+              <div className="lg:col-span-8">
+                <DeviceAlertsTable />
+              </div>
 
-              <Card className="lg:col-span-4 glass-card bg-[#111827]/40 border-white/5">
+              <Card className="lg:col-span-4 glass-card bg-[#111827]/40 border-white/5 h-full">
                 <CardHeader className="py-4 flex flex-row items-center justify-between border-b border-white/5">
                   <CardTitle className="text-xs font-headline font-bold text-white uppercase tracking-widest">Warehouse Map</CardTitle>
                   <MoreHorizontal className="w-4 h-4 text-muted-foreground/50 cursor-pointer" />
@@ -290,9 +279,9 @@ export default function HardwareMonitoringPage() {
                   <div className="grid grid-cols-2 gap-2 mt-4">
                     {[
                       { label: "Pulsed", color: "bg-cyan-400" },
-                      { label: "Pulsed", color: "bg-emerald-400" },
-                      { label: "Colleced", color: "bg-amber-400" },
-                      { label: "Offiine", color: "bg-red-400" },
+                      { label: "Online", color: "bg-emerald-400" },
+                      { label: "Collected", color: "bg-amber-400" },
+                      { label: "Offline", color: "bg-red-400" },
                     ].map((item) => (
                       <div key={item.label} className="flex items-center justify-end gap-2 pr-2">
                         <span className="text-[8px] text-muted-foreground uppercase font-bold">{item.label}</span>
