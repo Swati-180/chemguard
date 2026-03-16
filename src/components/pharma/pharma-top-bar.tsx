@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Search, Bell, ChevronDown, LogOut } from "lucide-react"
@@ -31,7 +30,6 @@ export function PharmaTopBar() {
       await signOut(auth)
       router.push("/login")
     } catch (error) {
-      console.error("Logout failed:", error)
       router.push("/login")
     }
   }

@@ -59,7 +59,6 @@ export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
           router.push("/login")
         }
       } catch (error) {
-        console.error("Error checking role:", error)
         router.push("/login")
       } finally {
         setCheckingRole(false)

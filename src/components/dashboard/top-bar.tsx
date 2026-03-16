@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Search, Bell, LogOut } from "lucide-react"
@@ -31,7 +30,6 @@ export function TopBar() {
       await signOut(auth)
       router.push("/login")
     } catch (error) {
-      console.error("Logout failed:", error)
       router.push("/login")
     }
   }

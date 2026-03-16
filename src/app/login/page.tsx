@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -89,7 +88,6 @@ export default function LoginPage() {
             await signOut(auth)
           }
         } catch (error) {
-          console.error("Session check failed:", error)
           await signOut(auth)
         } finally {
           setIsVerifying(false)
@@ -117,13 +115,12 @@ export default function LoginPage() {
           const userCredential = await signInWithEmailAndPassword(auth, u.email, u.password)
           uid = userCredential.user.uid
         } catch (signInError: any) {
-          if (signInError.code === 'auth/user-not-found') {
+          if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-email') {
             // 2. If user doesn't exist, create them
             const userCredential = await createUserWithEmailAndPassword(auth, u.email, u.password)
             uid = userCredential.user.uid
-          } else if (signInError.code === 'auth/wrong-password') {
-            // User exists but password changed. In a prototype, we'll just notify.
-            console.warn(`User ${u.email} already exists with a different password. Skipping profile update.`)
+          } else if (signInError.code === 'auth/wrong-password' || signInError.code === 'auth/invalid-credential') {
+            // User exists but password changed. In a prototype, we'll skip and continue.
             continue 
           } else {
             throw signInError
@@ -188,7 +185,6 @@ export default function LoginPage() {
     try {
       await signInWithEmailAndPassword(auth, trimmedEmail, password)
     } catch (error: any) {
-      console.error("Login attempt failed:", error.code)
       toast({ 
         variant: "destructive", 
         title: "Access Denied", 
