@@ -35,8 +35,8 @@ const navItems = [
   { title: "Shipment Requests", icon: Truck, href: "/pharma/shipment-requests" },
   { title: "Hardware Monitoring", icon: Cpu, href: "/pharma/hardware-monitoring" },
   { title: "Usage Logs", icon: History, href: "/pharma/usage-logs" },
-  { title: "Compliance Logs", icon: ShieldCheck, href: "#" },
-  { title: "Alerts", icon: Bell, href: "#" },
+  { title: "Compliance Logs", icon: ShieldCheck, href: "/pharma/compliance", badge: "14" },
+  { title: "Alerts", icon: Bell, href: "#", alert: true },
   { title: "Reports", icon: FileText, href: "#" },
   { title: "Settings", icon: Settings, href: "#" },
 ]
@@ -69,11 +69,21 @@ export function PharmaSidebar() {
                     asChild 
                     isActive={pathname === item.href} 
                     tooltip={item.title}
-                    className="px-6 py-6 transition-all hover:bg-white/5 data-[active=true]:bg-cyan-500/10 data-[active=true]:text-cyan-400 text-muted-foreground border-l-2 border-transparent data-[active=true]:border-cyan-400"
+                    className="px-6 py-6 transition-all hover:bg-white/5 data-[active=true]:bg-cyan-500/10 data-[active=true]:text-cyan-400 text-muted-foreground border-l-2 border-transparent data-[active=true]:border-cyan-400 relative"
                   >
                     <Link href={item.href} className="flex items-center gap-4">
-                      <item.icon className="w-5 h-5" />
+                      <div className="relative">
+                        <item.icon className="w-5 h-5" />
+                        {item.alert && (
+                          <div className="absolute -top-1 -right-1 w-2 h-2 bg-destructive rounded-full border border-[#0a0f18]" />
+                        )}
+                      </div>
                       <span className="font-bold text-xs group-data-[collapsible=icon]:hidden">{item.title}</span>
+                      {item.badge && (
+                        <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 group-data-[collapsible=icon]:hidden">
+                          {item.badge}
+                        </span>
+                      )}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
