@@ -57,8 +57,8 @@ export default function LoginPage() {
       toast({ title: "Access Granted", description: "Entering Admin Neural Operations Hub..." })
       router.push("/")
     } else if (portal === 'pharma' && username === 'pharma' && password === 'pharma123') {
-      toast({ title: "Access Granted", description: "Entering Pharmaceutical Inventory Portal..." })
-      router.push("/chemicals")
+      toast({ title: "Access Granted", description: "Entering Pharmaceutical Control Hub..." })
+      router.push("/pharma/dashboard")
     } else if (portal === 'transporter' && username === 'transporter' && password === 'trans123') {
       toast({ title: "Access Granted", description: "Entering Logistics Monitoring Hub..." })
       router.push("/shipments")
