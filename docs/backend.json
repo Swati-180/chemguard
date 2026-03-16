@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -53,7 +54,7 @@
         "chemicalName": { "type": "string" },
         "quantity": { "type": "number" },
         "unit": { "type": "string" },
-        "productionDate": { "type": "string", "format": "date" },
+        "productionDate": { "type": "string", format: "date" },
         "storageLocation": { "type": "string" },
         "status": { "type": "string" },
         "createdBy": { "type": "string" },
@@ -101,16 +102,14 @@
       "description": "Logs movements and consumption of chemicals.",
       "properties": {
         "id": { "type": "string" },
-        "logIdentifier": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" },
-        "chemicalBatchId": { "type": "string" },
-        "userId": { "type": "string" },
-        "actionType": { "type": "string" },
-        "quantityChanged": { "type": "number" },
-        "unit": { "type": "string" },
-        "location": { "type": "string" }
+        "chemicalName": { "type": "string" },
+        "batchId": { "type": "string" },
+        "quantityUsed": { "type": "string" },
+        "purpose": { "type": "string" },
+        "technician": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "logIdentifier", "timestamp", "chemicalBatchId", "userId", "actionType", "quantityChanged", "unit", "location"]
+      "required": ["id", "chemicalName", "batchId", "quantityUsed", "purpose", "technician", "date"]
     },
     "Alert": {
       "$schema": "http://json-schema.org/draft-07/schema#",

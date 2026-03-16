@@ -46,15 +46,12 @@ export function PharmaQuickActions() {
         const usageRef = doc(collection(db, "usage_logs"), usageId)
         setDocumentNonBlocking(usageRef, {
           id: usageId,
-          logIdentifier: usageId.slice(-6),
-          timestamp: new Date().toISOString(),
-          chemicalBatchId: "B-9921",
-          userId: user.uid,
-          actionType: "Dispensed",
-          quantityChanged: 5,
-          unit: "L",
-          newQuantityInBatch: 95,
-          location: "Synthesis R-101"
+          chemicalName: "Hydrochloric Acid",
+          batchId: "B-9921",
+          quantityUsed: "5.0 L",
+          purpose: "R&D Synthesis",
+          technician: user.displayName || "Dr. Amelia Reed",
+          date: new Date().toISOString()
         }, { merge: true })
         toast({ title: "Audit Recorded", description: "Usage event synchronized with secure database." })
         break
