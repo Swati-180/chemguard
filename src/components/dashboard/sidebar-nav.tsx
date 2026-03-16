@@ -37,7 +37,7 @@ const navItems = [
   { title: "Chemicals", icon: Beaker, href: "/chemicals" },
   { title: "Shipments", icon: Truck, href: "/shipments" },
   { title: "Hardware Monitoring", icon: Cpu, href: "/hardware-monitoring" },
-  { title: "AI Intelligence", icon: BrainCircuit, href: "#" },
+  { title: "AI Intelligence", icon: BrainCircuit, href: "/ai-intelligence" },
   { title: "Alerts", icon: Bell, href: "#" },
   { title: "Users", icon: Users, href: "#" },
   { title: "Compliance", icon: ShieldCheck, href: "#" },
