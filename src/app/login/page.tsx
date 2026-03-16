@@ -12,8 +12,7 @@ import {
   Lock, 
   User,
   ArrowRight,
-  ShieldCheck,
-  Navigation
+  ShieldCheck
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,7 +21,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
-import { useAuth, useFirestore } from "@/firebase"
+import { useAuth, useFirestore, useUser } from "@/firebase"
 import { signInWithEmailAndPassword } from "firebase/auth"
 import { doc, getDoc } from "firebase/firestore"
 
@@ -30,6 +29,7 @@ export default function LoginPage() {
   const router = useRouter()
   const auth = useAuth()
   const db = useFirestore()
+  const { user, isUserLoading } = useUser()
   
   const [showPassword, setShowPassword] = React.useState<Record<string, boolean>>({
     admin: false,
@@ -42,6 +42,26 @@ export default function LoginPage() {
     pharma: { email: "", password: "" },
     transporter: { email: "", password: "" }
   })
+
+  // Automatic redirect if already logged in
+  React.useEffect(() => {
+    if (!isUserLoading && user) {
+      const fetchRoleAndRedirect = async () => {
+        try {
+          const userDoc = await getDoc(doc(db, "users", user.uid))
+          if (userDoc.exists()) {
+            const role = userDoc.data().role
+            if (role === 'admin') router.push("/admin/dashboard")
+            else if (role === 'pharma') router.push("/pharma/dashboard")
+            else if (role === 'transporter') router.push("/transport/dashboard")
+          }
+        } catch (error) {
+          console.error("Session check failed:", error)
+        }
+      }
+      fetchRoleAndRedirect()
+    }
+  }, [user, isUserLoading, db, router])
 
   const togglePassword = (portal: string) => {
     setShowPassword(prev => ({ ...prev, [portal]: !prev[portal] }))
@@ -68,17 +88,17 @@ export default function LoginPage() {
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password)
-      const user = userCredential.user
+      const authenticatedUser = userCredential.user
 
       // Retrieve user profile from Firestore
-      const userDocRef = doc(db, "users", user.uid)
+      const userDocRef = doc(db, "users", authenticatedUser.uid)
       const userDoc = await getDoc(userDocRef)
 
       if (userDoc.exists()) {
         const userData = userDoc.data()
         const role = userData.role
 
-        toast({ title: "Access Granted", description: `Welcome back, ${userData.name || 'User'}.` })
+        toast({ title: "Access Granted", description: `Welcome back, ${userData.name || 'authorized user'}.` })
 
         // Role-based redirection
         if (role === 'admin') {
@@ -94,7 +114,7 @@ export default function LoginPage() {
         toast({ 
           variant: "destructive", 
           title: "Profile Not Found", 
-          description: "Authenticated but no profile record found in system." 
+          description: "Authenticated but no system profile found." 
         })
       }
     } catch (error: any) {
@@ -105,6 +125,8 @@ export default function LoginPage() {
       })
     }
   }
+
+  if (isUserLoading) return null // Let global loading handle it or RoleGuard style loading
 
   return (
     <div className="min-h-screen w-full bg-[#0a0f18] flex flex-col items-center justify-center p-6 relative overflow-hidden">
