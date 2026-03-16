@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -44,7 +45,7 @@ const navItems = [
   { title: "Users", icon: Users, href: "/users" },
   { title: "Compliance", icon: ShieldCheck, href: "/compliance" },
   { title: "Reports", icon: FileText, href: "/reports" },
-  { title: "Settings", icon: Settings, href: "#" },
+  { title: "Settings", icon: Settings, href: "/settings" },
 ]
 
 export function DashboardSidebar() {
