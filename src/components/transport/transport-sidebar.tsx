@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -35,7 +36,7 @@ import { useUser } from "@/firebase"
 const navItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/transport/dashboard" },
   { title: "Active Shipments", icon: Truck, href: "/transport/shipments" },
-  { title: "Live Route Tracking", icon: MapIcon, href: "/transport/tracking" },
+  { title: "Live Route Tracking", icon: MapIcon, href: "/transport/routes" },
   { title: "Hardware Monitoring", icon: Cpu, href: "/transport/hardware" },
   { title: "Checkpoint Logs", icon: ClipboardList, href: "/transport/checkpoints" },
   { title: "Alerts & Incidents", icon: Bell, href: "/transport/alerts", badge: "2" },

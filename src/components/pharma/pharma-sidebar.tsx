@@ -35,7 +35,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 const navItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/pharma/dashboard" },
   { title: "Chemical Inventory", icon: Beaker, href: "/chemicals" },
-  { title: "Batch Management", icon: Database, href: "#" },
+  { title: "Batch Management", icon: Database, href: "/pharma/batches" },
   { title: "Shipment Requests", icon: Truck, href: "/pharma/shipment-requests" },
   { title: "Hardware Monitoring", icon: Cpu, href: "/pharma/hardware-monitoring" },
   { title: "Usage Logs", icon: History, href: "/pharma/usage-logs" },
