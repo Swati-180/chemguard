@@ -13,23 +13,21 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, Filter, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react"
+import { Search, Filter, ChevronLeft, ChevronRight, MoreHorizontal, Loader2 } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
-
-const shipments = [
-  { id: "SH-1001", batchId: "BAC1001", transporter: "EuroExpress", vehicleId: "CGV-102", route: "R-North-01", status: "In Transit", eta: "14:30 GMT" },
-  { id: "SH-1002", batchId: "BAC1002", transporter: "Ladtar Logistics", vehicleId: "CGV-215", route: "R-West-04", status: "Pending", eta: "18:00 GMT" },
-  { id: "SH-1003", batchId: "BAC1003", transporter: "Global Freight", vehicleId: "CGV-098", route: "R-East-02", status: "Loading", eta: "16:15 GMT" },
-  { id: "SH-1004", batchId: "BAC1004", transporter: "EuroExpress", vehicleId: "CGV-044", route: "R-South-09", status: "In Transit", eta: "12:00 GMT" },
-  { id: "SH-1005", batchId: "BAC1005", transporter: "Ladtar Logistics", vehicleId: "CGV-112", route: "R-North-02", status: "Delayed", eta: "20:45 GMT" },
-  { id: "SH-1006", batchId: "BAC1006", transporter: "Global Freight", vehicleId: "CGV-301", route: "R-Central-05", status: "In Transit", eta: "15:30 GMT" },
-  { id: "SH-1007", batchId: "BAC1007", transporter: "EuroExpress", vehicleId: "CGV-221", route: "R-West-01", status: "Pending", eta: "09:00 GMT" },
-  { id: "SH-1008", batchId: "BAC1008", transporter: "Ladtar Logistics", vehicleId: "CGV-088", route: "R-East-05", status: "Loading", eta: "11:20 GMT" },
-  { id: "SH-1009", batchId: "BAC1009", transporter: "Global Freight", vehicleId: "CGV-404", route: "R-North-08", status: "Completed", eta: "08:45 GMT" },
-]
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase"
+import { collection, query, orderBy, limit } from "firebase/firestore"
 
 export function ShipmentRequestsTable() {
+  const db = useFirestore()
+
+  const shipmentsQuery = useMemoFirebase(() => {
+    return query(collection(db, "shipment_requests"), orderBy("createdAt", "desc"), limit(25))
+  }, [db])
+
+  const { data: shipments, isLoading, error } = useCollection(shipmentsQuery)
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "In Transit":
@@ -49,7 +47,6 @@ export function ShipmentRequestsTable() {
 
   return (
     <Card className="glass-card border-cyan-500/20 bg-[#0a0f18]/60 relative overflow-hidden">
-      {/* Decorative Circuit Board Elements */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-10">
         <svg width="100%" height="100%" viewBox="0 0 800 400" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M0 20H100L120 0H200" stroke="currentColor" strokeWidth="1" className="text-cyan-400" />
@@ -75,54 +72,68 @@ export function ShipmentRequestsTable() {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader className="bg-white/5">
-            <TableRow className="border-white/5 hover:bg-transparent uppercase">
-              <TableHead className="w-12 text-center py-4"><Checkbox className="border-cyan-500/50" /></TableHead>
-              <TableHead className="text-[10px] font-bold py-4">Shipment ID</TableHead>
-              <TableHead className="text-[10px] font-bold py-4">Batch ID</TableHead>
-              <TableHead className="text-[10px] font-bold py-4">Transporter</TableHead>
-              <TableHead className="text-[10px] font-bold py-4">Vehicle ID</TableHead>
-              <TableHead className="text-[10px] font-bold py-4">Route</TableHead>
-              <TableHead className="text-[10px] font-bold py-4">Status</TableHead>
-              <TableHead className="text-[10px] font-bold py-4">ETA</TableHead>
-              <TableHead className="w-12"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {shipments.map((s) => (
-              <TableRow key={s.id} className="border-white/5 hover:bg-white/5 transition-colors group">
-                <TableCell className="text-center py-3"><Checkbox className="border-white/20" /></TableCell>
-                <TableCell className="py-3 text-[11px] font-mono font-bold text-cyan-400">{s.id}</TableCell>
-                <TableCell className="py-3 text-[11px] text-white font-medium">{s.batchId}</TableCell>
-                <TableCell className="py-3 text-[11px] text-muted-foreground">{s.transporter}</TableCell>
-                <TableCell className="py-3 text-[11px] font-mono text-primary">{s.vehicleId}</TableCell>
-                <TableCell className="py-3 text-[11px] text-muted-foreground">{s.route}</TableCell>
-                <TableCell className="py-3">{getStatusBadge(s.status)}</TableCell>
-                <TableCell className="py-3 text-[11px] font-mono text-muted-foreground">{s.eta}</TableCell>
-                <TableCell className="py-3">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-white opacity-0 group-hover:opacity-100">
-                    <MoreHorizontal className="w-4 h-4" />
-                  </Button>
-                </TableCell>
+      <CardContent className="p-0 min-h-[400px]">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center p-20 space-y-4">
+            <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
+            <p className="text-[10px] font-bold text-cyan-400 uppercase tracking-[0.3em]">Synchronizing Logistics Stream</p>
+          </div>
+        ) : error ? (
+          <div className="p-20 text-center text-destructive">
+            <p className="text-xs font-bold uppercase tracking-widest">Access Denied</p>
+            <p className="text-[10px] text-muted-foreground">Insufficient clearance to view shipment data.</p>
+          </div>
+        ) : shipments && shipments.length > 0 ? (
+          <Table>
+            <TableHeader className="bg-white/5">
+              <TableRow className="border-white/5 hover:bg-transparent uppercase">
+                <TableHead className="w-12 text-center py-4"><Checkbox className="border-cyan-500/50" /></TableHead>
+                <TableHead className="text-[10px] font-bold py-4">Shipment ID</TableHead>
+                <TableHead className="text-[10px] font-bold py-4">Origin</TableHead>
+                <TableHead className="text-[10px] font-bold py-4">Destination</TableHead>
+                <TableHead className="text-[10px] font-bold py-4">Tracking #</TableHead>
+                <TableHead className="text-[10px] font-bold py-4">Status</TableHead>
+                <TableHead className="text-[10px] font-bold py-4">ETA</TableHead>
+                <TableHead className="w-12"></TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {shipments.map((s) => (
+                <TableRow key={s.id} className="border-white/5 hover:bg-white/5 transition-colors group">
+                  <TableCell className="text-center py-3"><Checkbox className="border-white/20" /></TableCell>
+                  <TableCell className="py-3 text-[11px] font-mono font-bold text-cyan-400">{s.shipmentIdentifier}</TableCell>
+                  <TableCell className="py-3 text-[11px] text-white font-medium">{s.originLocation}</TableCell>
+                  <TableCell className="py-3 text-[11px] text-muted-foreground">{s.destinationLocation}</TableCell>
+                  <TableCell className="py-3 text-[11px] font-mono text-primary">{s.trackingNumber || 'UNASSIGNED'}</TableCell>
+                  <TableCell className="py-3">{getStatusBadge(s.status)}</TableCell>
+                  <TableCell className="py-3 text-[11px] font-mono text-muted-foreground">
+                    {s.expectedArrivalTime ? new Date(s.expectedArrivalTime).toLocaleTimeString() : 'TBD'}
+                  </TableCell>
+                  <TableCell className="py-3">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-white opacity-0 group-hover:opacity-100">
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <div className="p-20 text-center text-muted-foreground">
+            <p className="text-xs uppercase tracking-widest">No active shipments found in database.</p>
+          </div>
+        )}
         <div className="flex items-center justify-between p-4 border-t border-white/5 bg-white/2">
           <div className="flex items-center gap-4">
-            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Page 1 of 5</span>
+            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Page 1 of 1</span>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-white"><ChevronLeft className="w-4 h-4" /></Button>
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-white" disabled><ChevronLeft className="w-4 h-4" /></Button>
               <span className="w-6 h-6 rounded bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-[10px] font-bold border border-cyan-500/30">1</span>
-              <span className="w-6 h-6 rounded hover:bg-white/5 text-muted-foreground flex items-center justify-center text-[10px] font-bold cursor-pointer">2</span>
-              <span className="w-6 h-6 rounded hover:bg-white/5 text-muted-foreground flex items-center justify-center text-[10px] font-bold cursor-pointer">3</span>
-              <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-white"><ChevronRight className="w-4 h-4" /></Button>
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-white" disabled><ChevronRight className="w-4 h-4" /></Button>
             </div>
           </div>
           <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
-            Total Requests: 42
+            Live Stream: ACTIVE
           </div>
         </div>
       </CardContent>

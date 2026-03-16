@@ -18,25 +18,22 @@ import {
   SelectValue 
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { Search, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react"
+import { Search, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-
-const users = [
-  { id: "10000001", name: "Amelia Reed", role: "Admin", org: "ChemGuard HQ", status: "Active" },
-  { id: "10000012", name: "Amelia Reed", role: "Lab Manager", org: "ChemGuard HQ", status: "Deactivated" },
-  { id: "10000023", name: "Admin Bagher", role: "Driver", org: "PharmaLabs", status: "Pending" },
-  { id: "10000034", name: "Jasnny Crites", role: "Driver", org: "EuroExpress", status: "Pending" },
-  { id: "10000055", name: "Amelia Shadson", role: "Compliance Officer", org: "ChemGuard HQ", status: "Pending" },
-  { id: "10000066", name: "Jarna Davis", role: "Admin", org: "ChemGuard HQ", status: "Active" },
-  { id: "10000077", name: "Datan Haimer", role: "Driver", org: "PharmaLabs", status: "Deactivated" },
-  { id: "10000088", name: "Andrew Dojves", role: "Driver", org: "EuroExpress", status: "Pending" },
-  { id: "10001089", name: "Amelia Seiter", role: "Compliance Officer", org: "EuroExpress", status: "Pending" },
-  { id: "10001010", name: "Asta Stibana", role: "Compliance Officer", org: "ChemGuard HQ", status: "Pending" },
-]
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase"
+import { collection, query, limit } from "firebase/firestore"
 
 export function UserManagementTable() {
-  const getStatusBadge = (status: string) => {
+  const db = useFirestore()
+
+  const usersQuery = useMemoFirebase(() => {
+    return query(collection(db, "users"), limit(20))
+  }, [db])
+
+  const { data: users, isLoading, error } = useCollection(usersQuery)
+
+  const getStatusBadge = (status: string = "Active") => {
     switch (status) {
       case "Active":
         return <Badge className="bg-accent/20 text-accent border-accent/30 h-6 px-3">Active</Badge>
@@ -60,89 +57,71 @@ export function UserManagementTable() {
             <SelectContent>
               <SelectItem value="all">Role</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="driver">Driver</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select defaultValue="all">
-            <SelectTrigger className="w-[160px] h-9 bg-white/5 border-white/10 text-xs">
-              <SelectValue placeholder="Organization" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Organization</SelectItem>
-              <SelectItem value="hq">ChemGuard HQ</SelectItem>
-              <SelectItem value="pharma">PharmaLabs</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select defaultValue="all">
-            <SelectTrigger className="w-[140px] h-9 bg-white/5 border-white/10 text-xs">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Status</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="pharma">Pharma</SelectItem>
+              <SelectItem value="transporter">Transporter</SelectItem>
             </SelectContent>
           </Select>
 
           <div className="relative ml-auto w-full md:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <Input 
-              placeholder="Table Search" 
+              placeholder="Search User Profiles" 
               className="h-9 pl-9 bg-white/5 border-white/10 text-xs focus-visible:ring-primary/50"
             />
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader className="bg-white/5">
-            <TableRow className="border-white/5 hover:bg-transparent uppercase">
-              <TableHead className="text-[10px] font-bold py-4">User ID</TableHead>
-              <TableHead className="text-[10px] font-bold py-4">Name</TableHead>
-              <TableHead className="text-[10px] font-bold py-4">Role</TableHead>
-              <TableHead className="text-[10px] font-bold py-4">Organization</TableHead>
-              <TableHead className="text-[10px] font-bold py-4">Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id} className="border-white/5 hover:bg-white/5 transition-colors group">
-                <TableCell className="py-3 text-[11px] font-mono text-muted-foreground">{user.id}</TableCell>
-                <TableCell className="py-3 text-[11px] text-white font-medium">{user.name}</TableCell>
-                <TableCell className="py-3 text-[11px] text-muted-foreground">{user.role}</TableCell>
-                <TableCell className="py-3 text-[11px] text-muted-foreground">{user.org}</TableCell>
-                <TableCell className="py-3">{getStatusBadge(user.status)}</TableCell>
+      <CardContent className="p-0 min-h-[300px]">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center p-20 space-y-4">
+            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            <p className="text-[10px] font-bold text-primary uppercase tracking-[0.3em]">Retrieving Secure Directory</p>
+          </div>
+        ) : error ? (
+          <div className="p-20 text-center text-destructive">
+            <p className="text-xs font-bold uppercase tracking-widest">Unauthorized Access</p>
+            <p className="text-[10px] text-muted-foreground">Insufficient security clearance to view directory.</p>
+          </div>
+        ) : users && users.length > 0 ? (
+          <Table>
+            <TableHeader className="bg-white/5">
+              <TableRow className="border-white/5 hover:bg-transparent uppercase">
+                <TableHead className="text-[10px] font-bold py-4">UID Reference</TableHead>
+                <TableHead className="text-[10px] font-bold py-4">Username</TableHead>
+                <TableHead className="text-[10px] font-bold py-4">System Role</TableHead>
+                <TableHead className="text-[10px] font-bold py-4">Email Address</TableHead>
+                <TableHead className="text-[10px] font-bold py-4">Status</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id} className="border-white/5 hover:bg-white/5 transition-colors group">
+                  <TableCell className="py-3 text-[11px] font-mono text-muted-foreground truncate max-w-[100px]">{user.id}</TableCell>
+                  <TableCell className="py-3 text-[11px] text-white font-medium">{user.username || user.firstName + ' ' + user.lastName}</TableCell>
+                  <TableCell className="py-3 text-[11px] text-muted-foreground uppercase font-bold text-primary/80">{user.role}</TableCell>
+                  <TableCell className="py-3 text-[11px] text-muted-foreground">{user.email}</TableCell>
+                  <TableCell className="py-3">{getStatusBadge("Active")}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <div className="p-20 text-center text-muted-foreground">
+            <p className="text-xs uppercase tracking-widest">No users found in secure directory.</p>
+          </div>
+        )}
         <div className="flex items-center justify-between p-4 border-t border-white/5 bg-white/2">
           <div className="flex items-center gap-1">
-             <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-white">
-               <ChevronLeft className="w-4 h-4" />
-             </Button>
-             <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-white">
-               <ChevronLeft className="w-4 h-4 -mr-2" />
+             <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-white" disabled>
                <ChevronLeft className="w-4 h-4" />
              </Button>
              <span className="text-[10px] text-muted-foreground ml-2">Page 1 of 1</span>
           </div>
           <div className="flex items-center gap-2">
-             <ChevronLeft className="w-3.5 h-3.5 text-primary opacity-50" />
              <div className="flex items-center gap-1">
                <span className="w-6 h-6 rounded-md bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold border border-primary/30">1</span>
-               <span className="w-6 h-6 rounded-md hover:bg-white/5 text-muted-foreground flex items-center justify-center text-[10px] cursor-pointer">2</span>
-               <span className="w-6 h-6 rounded-md hover:bg-white/5 text-muted-foreground flex items-center justify-center text-[10px] cursor-pointer">3</span>
-               <span className="w-6 h-6 rounded-md hover:bg-white/5 text-muted-foreground flex items-center justify-center text-[10px] cursor-pointer">4</span>
-               <span className="text-muted-foreground px-1">...</span>
              </div>
-             <ChevronRight className="w-3.5 h-3.5 text-primary" />
-             <div className="flex items-center gap-0">
-               <ChevronRight className="w-3.5 h-3.5 text-primary" />
-               <ChevronRight className="w-3.5 h-3.5 text-primary -ml-2" />
-             </div>
+             <ChevronRight className="w-3.5 h-3.5 text-primary opacity-50" />
           </div>
         </div>
       </CardContent>
