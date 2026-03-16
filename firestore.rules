@@ -3,15 +3,22 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * CORE PHILOSOPHY: ChemGuard AI Security Model
-     * 1. Multi-Tenant Role-Based Access (DBAC): Access is governed by three primary roles: 'admin', 'pharma', and 'transporter'.
-     * 2. Hierarchical Ownership: Data is structured under Pharma or Transporter companies. Access is primarily granted 
-     *    based on the user's 'associatedCompanyId' stored in their UserProfile.
-     * 3. Authorization Independence (Denormalization): To maintain performance and avoid deep recursive 'get()' calls, 
-     *    critical authorization context (like 'involvedPharmaCompanyIds' or 'shipmentTransporterCompanyId') is 
-     *    denormalized directly onto child documents (ChemicalBatches, Alerts, IoTDevices).
-     * 4. Structural Segregation: Entities are partitioned by company type to enforce clear boundaries between 
-     *    pharmaceutical manufacturing and logistics operations.
+     * CORE PHILOSOPHY
+     * This ruleset implements a robust Role-Based Access Control (RBAC) system for the ChemGuard AI dashboard.
+     * It prioritizes "Authorization Independence" by using dedicated role collections and denormalized 
+     * ownership fields to ensure high performance and eliminate slow cross-document lookups (get() calls).
+     *
+     * DATA STRUCTURE
+     * - User Profiles: Stored at /users/{userId}.
+     * - Authorization Roles: Determined by the existence of a document in /roles_admin, /roles_operator, or /roles_viewer.
+     * - Global Entities: Inventory, Batches, and Hardware are top-level and managed by elevated roles.
+     * - Activity Entities: Shipment requests, usage logs, alerts, and compliance logs track operational data.
+     *
+     * KEY SECURITY DECISIONS
+     * - Existence over Content: Roles are verified via document existence in specific paths, not fields within the UserProfile.
+     * - Ownership Denormalization: shipment_requests include a 'requestorId' to allow for fast, direct ownership checks.
+     * - Audit Integrity: usage_logs and compliance_logs are designed to be largely immutable once created.
+     * - Prototyping Flexibility: Rules enforce strict authorization (Who) but allow flexible data shapes (What) for rapid iteration.
      */
 
     // --- HELPER FUNCTIONS ---
@@ -20,157 +27,165 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-    }
-
-    function getProfile() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Checks if the user belongs to the specified company ID
-    function isMemberOf(companyId) {
-      return isSignedIn() && getProfile().associatedCompanyId == companyId;
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    // Checks for pharma role specifically
-    function isPharmaRole() {
-      return isSignedIn() && getProfile().role == 'pharma';
+    function isOperator() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_operator/$(request.auth.uid));
     }
 
-    // Checks for transporter role specifically
-    function isTransporterRole() {
-      return isSignedIn() && getProfile().role == 'transporter';
+    function isViewer() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_viewer/$(request.auth.uid));
     }
 
-    // Validates that an existing document belongs to the user's company
-    function isExistingCompanyData(companyIdField) {
-      return resource != null && isMemberOf(companyIdField);
+    // Elevated access for staff who manage operations
+    function hasElevatedAccess() {
+      return isAdmin() || isOperator();
+    }
+
+    // Basic access for any recognized staff member
+    function hasAnyRole() {
+      return isAdmin() || isOperator() || isViewer();
+    }
+
+    // Helper for validating existing resource for updates/deletes
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
     }
 
     // --- COLLECTION RULES ---
 
     /**
-     * @description Rules for User Profiles. Users manage their own profiles; Admins manage all.
+     * @description Rules for user profile documents. Access is restricted to the owner or administrators.
      * @path /users/{userId}
-     * @allow (get, update) if user is the owner. (list) if admin.
-     * @deny (delete) for non-admins to prevent account deletion bypass.
-     * @principle Ownership and Role-Based Access.
+     * @allow get, list, create, update: if isOwner(userId);
+     * @deny delete: if request.auth.uid != userId;
+     * @principle Restricts access to a user's own data tree and enforces path-to-data consistency.
      */
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) && (request.resource.data.role == resource.data.role); // Role immutable by user
+      allow list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
       allow delete: if isAdmin();
     }
 
     /**
-     * @description Administrative flag collection. Only accessible by admins.
-     * @path /roles_admin/{adminId}
-     * @allow (get) if signed in. (write) if admin.
-     * @deny (list) to anyone except existing admins.
-     * @principle Restricted administrative control.
+     * @description Role collections used for DBAC (Database-based Access Control). Only Admins can modify roles.
+     * @path /roles_{role}/{userId}
+     * @allow get: if isSignedIn();
+     * @deny create, update, delete: if !isAdmin();
+     * @principle Implements "Existence over Content" pattern for secure and performant role checks.
      */
-    match /roles_admin/{adminId} {
-      allow get: if isSignedIn();
-      allow list, create, update, delete: if isAdmin();
+    match /roles_admin/{userId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
     }
-
-    /**
-     * @description Pharmaceutical Company master data.
-     * @path /pharmaCompanies/{pharmaCompanyId}
-     * @allow (get, list) if member of company or admin. (update) if admin.
-     * @deny (delete) entirely to preserve historical compliance data.
-     * @principle Corporate data segregation.
-     */
-    match /pharmaCompanies/{pharmaCompanyId} {
-      allow get, list: if isMemberOf(pharmaCompanyId) || isAdmin();
-      allow create, update: if isAdmin();
-      allow delete: if false;
+    match /roles_operator/{userId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
     }
-
-    /**
-     * @description Logistics Company master data.
-     * @path /transporterCompanies/{transporterCompanyId}
-     * @allow (get, list) if member of company or admin. (update) if admin.
-     * @deny (create) to non-admins.
-     * @principle Corporate data segregation.
-     */
-    match /transporterCompanies/{transporterCompanyId} {
-      allow get, list: if isMemberOf(transporterCompanyId) || isAdmin();
-      allow create, update: if isAdmin();
-      allow delete: if false;
-    }
-
-    /**
-     * @description Chemical batches owned by a Pharma Company.
-     * @path /pharmaCompanies/{pharmaCompanyId}/chemicalBatches/{batchId}
-     * @allow (read) if pharma owner OR if transporter is assigned to the shipment.
-     * @allow (write) if pharma owner.
-     * @principle Cross-company visibility via denormalized 'shipmentTransporterCompanyId'.
-     */
-    match /pharmaCompanies/{pharmaCompanyId}/chemicalBatches/{batchId} {
-      allow get, list: if isMemberOf(pharmaCompanyId) || isAdmin() || (isTransporterRole() && resource.data.shipmentTransporterCompanyId == getProfile().associatedCompanyId);
-      allow create: if isMemberOf(pharmaCompanyId) && request.resource.data.pharmaCompanyId == pharmaCompanyId;
-      allow update: if isExistingCompanyData(pharmaCompanyId);
-      allow delete: if isAdmin();
-    }
-
-    /**
-     * @description Shipments managed by Transporters.
-     * @path /transporterCompanies/{transporterCompanyId}/shipments/{shipmentId}
-     * @allow (read) if transporter owner OR if pharma company is involved in shipment.
-     * @allow (write) if transporter owner.
-     * @principle Shared access via denormalized 'involvedPharmaCompanyIds' map.
-     */
-    match /transporterCompanies/{transporterCompanyId}/shipments/{shipmentId} {
-      allow get, list: if isMemberOf(transporterCompanyId) || isAdmin() || (isPharmaRole() && resource.data.involvedPharmaCompanyIds[getProfile().associatedCompanyId] == true);
-      allow create: if isMemberOf(transporterCompanyId) && request.resource.data.transporterCompanyId == transporterCompanyId;
-      allow update: if isExistingCompanyData(transporterCompanyId);
-      allow delete: if isAdmin();
-
-      /**
-       * @description IoT Devices monitoring a specific shipment.
-       * @path /transporterCompanies/{transporterCompanyId}/shipments/{shipmentId}/iotDevices/{deviceId}
-       * @allow (read) inherited from parent shipment visibility logic.
-       * @principle Subcollection path-based security.
-       */
-      match /iotDevices/{deviceId} {
-        allow get, list: if isMemberOf(transporterCompanyId) || isAdmin() || (isPharmaRole() && resource.data.involvedPharmaCompanyIds[getProfile().associatedCompanyId] == true);
-        allow create, update: if isMemberOf(transporterCompanyId);
-        allow delete: if isAdmin();
-      }
-    }
-
-    /**
-     * @description System-wide alerts for shipments or devices.
-     * @path /alerts/{alertId}
-     * @allow (read) if user's company (pharma or transporter) is linked to the alert.
-     * @deny (write) to all non-admins (Alerts are generated by system/IoT).
-     * @principle Root-level collection with multi-party authorization fields.
-     */
-    match /alerts/{alertId} {
-      allow get, list: if isAdmin() || (isTransporterRole() && resource.data.transporterCompanyId == getProfile().associatedCompanyId) || (isPharmaRole() && resource.data.involvedPharmaCompanyIds[getProfile().associatedCompanyId] == true);
+    match /roles_viewer/{userId} {
+      allow get, list: if isSignedIn();
       allow create, update, delete: if isAdmin();
     }
 
     /**
-     * @description Compliance records for batches or shipments.
-     * @path /pharmaCompanies/{pharmaCompanyId}/complianceRecords/{recordId}
-     * @allow (read) if pharma owner OR if associated transporter is involved.
-     * @allow (write) if pharma owner.
-     * @principle Regulatory data integrity and controlled shared access.
+     * @description Master inventory definitions. Readable by all staff, manageable by Admins and Operators.
+     * @path /chemical_inventory/{chemicalInventoryId}
+     * @allow get, list: if hasAnyRole();
+     * @allow create, update, delete: if hasElevatedAccess();
+     * @principle Role-based access for static master data.
      */
-    match /pharmaCompanies/{pharmaCompanyId}/complianceRecords/{recordId} {
-      allow get, list: if isMemberOf(pharmaCompanyId) || isAdmin() || (isTransporterRole() && resource.data.shipmentTransporterCompanyId == getProfile().associatedCompanyId);
-      allow create: if isMemberOf(pharmaCompanyId) && request.resource.data.pharmaCompanyId == pharmaCompanyId;
-      allow update: if isExistingCompanyData(pharmaCompanyId);
-      allow delete: if isAdmin();
+    match /chemical_inventory/{chemicalInventoryId} {
+      allow get, list: if hasAnyRole();
+      allow create: if hasElevatedAccess();
+      allow update, delete: if resource != null && hasElevatedAccess();
+    }
+
+    /**
+     * @description Specific batches of chemicals. Tracked by quantity and status.
+     * @path /chemical_batches/{chemicalBatchId}
+     * @allow get, list: if hasAnyRole();
+     * @allow create, update, delete: if hasElevatedAccess();
+     * @principle Role-based access for inventory management.
+     */
+    match /chemical_batches/{chemicalBatchId} {
+      allow get, list: if hasAnyRole();
+      allow create: if hasElevatedAccess();
+      allow update, delete: if resource != null && hasElevatedAccess();
+    }
+
+    /**
+     * @description Chemical shipment requests. Requestors see their own; Admins/Operators see all.
+     * @path /shipment_requests/{shipmentRequestId}
+     * @allow create: if hasElevatedAccess() || (isSignedIn() && request.resource.data.requestorId == request.auth.uid);
+     * @deny update: if resource.data.requestorId != request.auth.uid && !hasElevatedAccess();
+     * @principle Combines ownership and role-based patterns via denormalized requestorId.
+     */
+    match /shipment_requests/{shipmentRequestId} {
+      allow get, list: if hasElevatedAccess() || (resource != null && resource.data.requestorId == request.auth.uid);
+      allow create: if hasElevatedAccess() || (isSignedIn() && request.resource.data.requestorId == request.auth.uid);
+      allow update: if resource != null && (hasElevatedAccess() || resource.data.requestorId == request.auth.uid);
+      allow delete: if resource != null && hasElevatedAccess();
+    }
+
+    /**
+     * @description IoT Hardware device tracking.
+     * @path /hardware_devices/{hardwareDeviceId}
+     * @allow get, list: if hasAnyRole();
+     * @allow create, update, delete: if hasElevatedAccess();
+     * @principle Role-based access for infrastructure monitoring.
+     */
+    match /hardware_devices/{hardwareDeviceId} {
+      allow get, list: if hasAnyRole();
+      allow create: if hasElevatedAccess();
+      allow update, delete: if resource != null && hasElevatedAccess();
+    }
+
+    /**
+     * @description Audit logs for chemical usage. Immutable records for compliance.
+     * @path /usage_logs/{usageLogId}
+     * @allow get, list: if hasAnyRole();
+     * @deny update, delete: if true;
+     * @principle Ensures audit integrity by preventing modifications to log history.
+     */
+    match /usage_logs/{usageLogId} {
+      allow get, list: if hasAnyRole();
+      allow create: if hasElevatedAccess();
+      allow update, delete: if false;
+    }
+
+    /**
+     * @description Critical system alerts.
+     * @path /alerts/{alertId}
+     * @allow update: if hasElevatedAccess();
+     * @deny create: if !hasElevatedAccess();
+     * @principle Restricts alert resolution and creation to authorized staff.
+     */
+    match /alerts/{alertId} {
+      allow get, list: if hasAnyRole();
+      allow create: if hasElevatedAccess();
+      allow update: if resource != null && hasElevatedAccess();
+      allow delete: if resource != null && isAdmin();
+    }
+
+    /**
+     * @description Records of compliance checks.
+     * @path /compliance_logs/{complianceLogId}
+     * @allow get, list: if hasAnyRole();
+     * @deny update, delete: if true;
+     * @principle Preserves historical compliance data for regulatory review.
+     */
+    match /compliance_logs/{complianceLogId} {
+      allow get, list: if hasAnyRole();
+      allow create: if hasElevatedAccess();
+      allow update, delete: if false;
     }
 
   }
