@@ -26,6 +26,10 @@ import { useAuth, useFirestore, useUser } from "@/firebase"
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "firebase/auth"
 import { doc, getDoc, setDoc } from "firebase/firestore"
 
+/**
+ * ChemGuard AI Login Page.
+ * Authenticates users via Firebase Auth and redirects based on their Firestore role.
+ */
 export default function LoginPage() {
   const router = useRouter()
   const auth = useAuth()
@@ -62,6 +66,7 @@ export default function LoginPage() {
             } else if (role === 'transporter') {
               router.push("/transport/dashboard")
             } else {
+              // Fallback redirect
               router.push("/")
             }
           }
@@ -108,9 +113,6 @@ export default function LoginPage() {
           if (e.code !== 'auth/email-already-in-use') {
             throw e
           }
-          // If user exists, we might still want to ensure their Firestore doc is correct
-          // but we can't get UID without signing them in. In a prototype, we assume
-          // first-time setup or manually managed users.
         }
       }
       
@@ -134,6 +136,10 @@ export default function LoginPage() {
     }))
   }
 
+  /**
+   * Performs the authentication request.
+   * Reads from state, trims email, and handles specific error reporting.
+   */
   const handleLogin = (portal: string) => {
     const { email, password } = credentials[portal as keyof typeof credentials]
 
@@ -151,14 +157,11 @@ export default function LoginPage() {
 
     signInWithEmailAndPassword(auth, trimmedEmail, password)
       .catch((error: any) => {
-        let errorMessage = "Invalid credentials for this security clearance level."
-        if (error.code === 'auth/invalid-credential') {
-          errorMessage = "The email or password entered is incorrect."
-        }
+        // Standardized error message for any authentication failure
         toast({ 
           variant: "destructive", 
           title: "Access Denied", 
-          description: errorMessage
+          description: "The email or password entered is incorrect."
         })
       })
   }
