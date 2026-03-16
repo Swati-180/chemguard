@@ -53,9 +53,6 @@ export default function LoginPage() {
             const userData = userDoc.data()
             const role = userData.role
             
-            // Notification of success if it was a transition from no user
-            // In this setup, we just redirect.
-            
             if (role === 'admin') {
               router.push("/admin/dashboard")
             } else if (role === 'pharma') {
@@ -67,7 +64,11 @@ export default function LoginPage() {
               router.push("/")
             }
           } else {
-            console.error("Authenticated but no system profile found in Firestore.")
+            toast({
+              variant: "destructive",
+              title: "Profile Not Found",
+              description: "Authenticated successfully but no system profile was found in Firestore."
+            })
           }
         } catch (error) {
           console.error("Session check failed:", error)
@@ -100,14 +101,14 @@ export default function LoginPage() {
       return
     }
 
-    // Ensure email is trimmed before login
+    // CRITICAL: Ensure email is trimmed before login to avoid invalid email errors
     const trimmedEmail = email.trim()
 
-    // Non-blocking login pattern: Trigger the sign-in and handle errors.
-    // Redirection is handled by the useEffect watching the 'user' state.
+    toast({ title: "Authenticating", description: "Verifying security credentials..." })
+
     signInWithEmailAndPassword(auth, trimmedEmail, password)
       .then(() => {
-        toast({ title: "Authenticating", description: "Verifying security credentials..." })
+        // Redirection logic is handled by the useEffect watching the 'user' state above
       })
       .catch((error: any) => {
         let errorMessage = "Invalid credentials for this security clearance level."
@@ -116,12 +117,14 @@ export default function LoginPage() {
           errorMessage = "The email or password entered is incorrect."
         } else if (error.code === 'auth/invalid-email') {
           errorMessage = "Please enter a valid email address."
+        } else if (error.code === 'auth/too-many-requests') {
+          errorMessage = "Account temporarily disabled due to too many failed attempts. Try again later."
         }
 
         toast({ 
           variant: "destructive", 
           title: "Access Denied", 
-          description: error.message || errorMessage
+          description: errorMessage
         })
       })
   }
@@ -307,6 +310,7 @@ function PortalCard({
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
               <Input 
+                type="email"
                 placeholder="Enter email" 
                 value={email}
                 onChange={(e) => onEmailChange(e.target.value)}
