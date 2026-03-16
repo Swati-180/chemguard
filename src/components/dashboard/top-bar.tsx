@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Search, Bell, LogOut } from "lucide-react"
@@ -6,6 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { SidebarTrigger } from "@/components/ui/sidebar"
+import { useAuth, useUser } from "@/firebase"
+import { signOut } from "firebase/auth"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,10 +23,17 @@ import {
 
 export function TopBar() {
   const router = useRouter()
+  const auth = useAuth()
+  const { user } = useUser()
 
-  const handleLogout = () => {
-    // In a real app, clear session/cookies here
-    router.push("/login")
+  const handleLogout = async () => {
+    try {
+      await signOut(auth)
+      router.push("/login")
+    } catch (error) {
+      console.error("Logout failed:", error)
+      router.push("/login")
+    }
   }
 
   return (
@@ -49,12 +59,12 @@ export function TopBar() {
         
         <div className="flex items-center gap-3 pl-2">
           <div className="text-right hidden sm:block">
-            <p className="text-sm font-medium">Dr. Elena Vance</p>
-            <p className="text-xs text-muted-foreground">Admin Operations</p>
+            <p className="text-sm font-medium">{user?.displayName || "System User"}</p>
+            <p className="text-xs text-muted-foreground">SOC Operator</p>
           </div>
           <Avatar className="h-9 w-9 border border-primary/20 p-0.5">
-            <AvatarImage src="https://picsum.photos/seed/admin/40/40" />
-            <AvatarFallback className="bg-secondary text-primary">EV</AvatarFallback>
+            <AvatarImage src={`https://picsum.photos/seed/${user?.uid || 'user'}/40/40`} />
+            <AvatarFallback className="bg-secondary text-primary">US</AvatarFallback>
           </Avatar>
         </div>
 

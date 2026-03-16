@@ -13,20 +13,25 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // Helper to fetch user data for role checks
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      return isSignedIn() && getUserData().role == 'admin';
     }
 
     function isPharma() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_pharma/$(request.auth.uid));
+      return isSignedIn() && (getUserData().role == 'pharma' || isAdmin());
     }
 
     function isTransporter() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_transporter/$(request.auth.uid));
+      return isSignedIn() && (getUserData().role == 'transporter' || isAdmin());
     }
 
     function hasAnyRole() {
-      return isAdmin() || isPharma() || isTransporter();
+      return isSignedIn() && (getUserData().role in ['admin', 'pharma', 'transporter']);
     }
 
     // --- COLLECTION RULES ---
@@ -39,42 +44,43 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Legacy role check collections (kept for compatibility with existing code)
     match /roles_admin/{userId} {
       allow get, list: if isSignedIn();
-      allow create, update, delete: if isAdmin();
+      allow write: if isOwner(userId) || isAdmin();
     }
     match /roles_pharma/{userId} {
       allow get, list: if isSignedIn();
-      allow create, update, delete: if isAdmin();
+      allow write: if isOwner(userId) || isAdmin();
     }
     match /roles_transporter/{userId} {
       allow get, list: if isSignedIn();
-      allow create, update, delete: if isAdmin();
+      allow write: if isOwner(userId) || isAdmin();
     }
 
     match /chemical_inventory/{id} {
       allow get, list: if hasAnyRole();
-      allow write: if isAdmin() || isPharma();
+      allow write: if isPharma();
     }
 
     match /chemical_batches/{id} {
       allow get, list: if hasAnyRole();
-      allow write: if isAdmin() || isPharma();
+      allow write: if isPharma();
     }
 
     match /shipment_requests/{id} {
       allow get, list: if hasAnyRole();
-      allow write: if isAdmin() || isPharma() || isTransporter();
+      allow write: if isPharma() || isTransporter();
     }
 
     match /usage_logs/{id} {
       allow get, list: if hasAnyRole();
-      allow create: if isAdmin() || isPharma();
+      allow create: if isPharma();
     }
 
     match /alerts/{id} {
       allow get, list: if hasAnyRole();
-      allow write: if isAdmin() || isPharma() || isTransporter();
+      allow write: if isPharma() || isTransporter();
     }
 
     match /hardware_devices/{id} {
@@ -84,7 +90,7 @@ service cloud.firestore {
 
     match /compliance_logs/{id} {
       allow get, list: if hasAnyRole();
-      allow create: if isAdmin() || isPharma();
+      allow create: if isPharma();
     }
   }
 }

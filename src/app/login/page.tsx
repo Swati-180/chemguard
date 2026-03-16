@@ -14,7 +14,8 @@ import {
   User,
   ArrowRight,
   ShieldCheck,
-  Database
+  Database,
+  Loader2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -37,6 +38,7 @@ export default function LoginPage() {
   const db = useFirestore()
   const { user, isUserLoading } = useUser()
   const [isProvisioning, setIsProvisioning] = React.useState(false)
+  const [isVerifying, setIsVerifying] = React.useState(false)
   
   const [showPassword, setShowPassword] = React.useState<Record<string, boolean>>({
     admin: false,
@@ -54,6 +56,7 @@ export default function LoginPage() {
   React.useEffect(() => {
     if (!isUserLoading && user) {
       const fetchRoleAndRedirect = async () => {
+        setIsVerifying(true)
         try {
           const userDoc = await getDoc(doc(db, "users", user.uid))
           if (userDoc.exists()) {
@@ -67,17 +70,28 @@ export default function LoginPage() {
             } else if (role === 'transporter') {
               router.push("/transport/dashboard")
             } else {
-              // Fallback redirect
               router.push("/")
             }
+          } else {
+            // User exists in Auth but has no profile in Firestore
+            toast({
+              variant: "destructive",
+              title: "Profile Not Found",
+              description: "Your account is authenticated but no system profile was found. Please contact an administrator or initialize demo accounts."
+            })
+            // Sign out to prevent redirect loop
+            await signOut(auth)
           }
         } catch (error) {
           console.error("Session check failed:", error)
+          await signOut(auth)
+        } finally {
+          setIsVerifying(false)
         }
       }
       fetchRoleAndRedirect()
     }
-  }, [user, isUserLoading, db, router])
+  }, [user, isUserLoading, db, router, auth])
 
   const handleProvisionDemoData = async () => {
     setIsProvisioning(true)
@@ -105,7 +119,7 @@ export default function LoginPage() {
             createdAt: new Date().toISOString()
           })
 
-          // Store in role check collections for security rules
+          // Store in role check collections for legacy support
           if (u.role === 'admin') await setDoc(doc(db, "roles_admin", uid), { active: true })
           if (u.role === 'pharma') await setDoc(doc(db, "roles_pharma", uid), { active: true })
           if (u.role === 'transporter') await setDoc(doc(db, "roles_transporter", uid), { active: true })
@@ -118,7 +132,7 @@ export default function LoginPage() {
       }
       
       await signOut(auth)
-      toast({ title: "Setup Complete", description: "Demo accounts are ready for testing." })
+      toast({ title: "Setup Complete", description: "Demo accounts are ready. You can now login." })
     } catch (error: any) {
       toast({ variant: "destructive", title: "Setup Failed", description: error.message })
     } finally {
@@ -137,10 +151,6 @@ export default function LoginPage() {
     }))
   }
 
-  /**
-   * Performs the authentication request.
-   * Reads from state, trims email, and handles specific error reporting.
-   */
   const handleLogin = (portal: string, e?: React.FormEvent) => {
     if (e) e.preventDefault()
     
@@ -160,7 +170,6 @@ export default function LoginPage() {
 
     signInWithEmailAndPassword(auth, trimmedEmail, password)
       .catch((error: any) => {
-        // Precise error message as requested
         toast({ 
           variant: "destructive", 
           title: "Access Denied", 
@@ -169,7 +178,18 @@ export default function LoginPage() {
       })
   }
 
-  if (isUserLoading) return null 
+  if (isUserLoading || isVerifying) {
+    return (
+      <div className="min-h-screen w-full bg-[#0a0f18] flex flex-col items-center justify-center p-6">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-12 h-12 text-primary animate-spin" />
+          <p className="text-[10px] font-bold text-primary uppercase tracking-[0.3em] animate-pulse">
+            Establishing Secure Satellite Link
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen w-full bg-[#0a0f18] flex flex-col items-center justify-center p-6 relative overflow-hidden">
