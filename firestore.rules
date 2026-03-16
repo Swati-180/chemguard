@@ -54,11 +54,9 @@ service cloud.firestore {
     /** @description General check for any authorized staff member. */
     function isStaff() {
       // Safely access getUserData().role by checking if getUserData() is not null
-      return isSignedIn() && getUserData() != null && getUserData().role in ['Admin', 'Dispatcher', 'Monitor'];
+      // Updated to include lowercase roles from the demo initialization
+      return isSignedIn() && getUserData() != null && getUserData().role in ['admin', 'pharma', 'transporter', 'Admin', 'Dispatcher', 'Monitor'];
     }
-
-    // The function 'isExistingOwner' was unused and contained an invalid reference to 'resource'.
-    // It has been removed. Existing rules correctly use 'resource != null' directly where needed.
 
     // --- COLLECTION RULES ---
 
@@ -70,11 +68,11 @@ service cloud.firestore {
      * @principle Self-creation and ownership for profile data.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId) || hasRole('Admin');
-      allow list: if hasRole('Admin');
+      allow get: if isOwner(userId) || hasRole('admin') || hasRole('Admin');
+      allow list: if hasRole('admin') || hasRole('Admin');
       allow create: if isOwner(userId);
-      allow update: if (isOwner(userId) || hasRole('Admin')) && resource != null;
-      allow delete: if hasRole('Admin') && resource != null;
+      allow update: if (isOwner(userId) || hasRole('admin') || hasRole('Admin')) && resource != null;
+      allow delete: if (hasRole('admin') || hasRole('Admin')) && resource != null;
     }
 
     /**
@@ -86,9 +84,9 @@ service cloud.firestore {
      */
     match /drivers/{driverId} {
       allow get, list: if isStaff();
-      allow create: if hasRole('Admin') || hasRole('Dispatcher');
-      allow update: if (hasRole('Admin') || hasRole('Dispatcher')) && resource != null;
-      allow delete: if hasRole('Admin') && resource != null;
+      allow create: if hasRole('admin') || hasRole('Admin') || hasRole('Dispatcher');
+      allow update: if (hasRole('admin') || hasRole('Admin') || hasRole('Dispatcher')) && resource != null;
+      allow delete: if (hasRole('admin') || hasRole('Admin')) && resource != null;
     }
 
     /**
@@ -100,9 +98,9 @@ service cloud.firestore {
      */
     match /vehicles/{vehicleId} {
       allow get, list: if isStaff();
-      allow create: if (hasRole('Admin') || hasRole('Dispatcher')) && request.resource.data.id == vehicleId;
-      allow update: if (hasRole('Admin') || hasRole('Dispatcher')) && resource != null;
-      allow delete: if hasRole('Admin') && resource != null;
+      allow create: if (hasRole('admin') || hasRole('Admin') || hasRole('Dispatcher')) && request.resource.data.id == vehicleId;
+      allow update: if (hasRole('admin') || hasRole('Admin') || hasRole('Dispatcher') || hasRole('transporter')) && resource != null;
+      allow delete: if (hasRole('admin') || hasRole('Admin')) && resource != null;
     }
 
     /**
@@ -114,9 +112,9 @@ service cloud.firestore {
      */
     match /shipments/{shipmentId} {
       allow get, list: if isStaff();
-      allow create: if (hasRole('Admin') || hasRole('Dispatcher')) && request.resource.data.id == shipmentId;
-      allow update: if (hasRole('Admin') || hasRole('Dispatcher')) && resource != null && request.resource.data.id == resource.data.id;
-      allow delete: if hasRole('Admin') && resource != null;
+      allow create: if (hasRole('admin') || hasRole('Admin') || hasRole('Dispatcher') || hasRole('pharma')) && request.resource.data.id == shipmentId;
+      allow update: if (hasRole('admin') || hasRole('Admin') || hasRole('Dispatcher') || hasRole('transporter')) && resource != null && request.resource.data.id == resource.data.id;
+      allow delete: if (hasRole('admin') || hasRole('Admin')) && resource != null;
     }
 
     /**
@@ -128,9 +126,9 @@ service cloud.firestore {
      */
     match /locations/{locationId} {
       allow get, list: if isStaff();
-      allow create: if hasRole('Admin') || hasRole('Dispatcher');
-      allow update: if (hasRole('Admin') || hasRole('Dispatcher')) && resource != null;
-      allow delete: if hasRole('Admin') && resource != null;
+      allow create: if hasRole('admin') || hasRole('Admin') || hasRole('Dispatcher');
+      allow update: if (hasRole('admin') || hasRole('Admin') || hasRole('Dispatcher')) && resource != null;
+      allow delete: if (hasRole('admin') || hasRole('Admin')) && resource != null;
     }
 
     /**
@@ -142,7 +140,7 @@ service cloud.firestore {
      */
     match /chemical_batches/{batchId} {
       allow get, list: if isStaff();
-      allow create, update, delete: if hasRole('Admin');
+      allow create, update, delete: if hasRole('admin') || hasRole('Admin');
     }
 
     /**
@@ -154,9 +152,9 @@ service cloud.firestore {
      */
     match /iot_devices/{deviceId} {
       allow get, list: if isStaff();
-      allow create: if hasRole('Admin') || hasRole('Dispatcher');
-      allow update: if (hasRole('Admin') || hasRole('Dispatcher')) && resource != null;
-      allow delete: if hasRole('Admin') && resource != null;
+      allow create: if hasRole('admin') || hasRole('Admin') || hasRole('Dispatcher');
+      allow update: if (hasRole('admin') || hasRole('Admin') || hasRole('Dispatcher')) && resource != null;
+      allow delete: if (hasRole('admin') || hasRole('Admin')) && resource != null;
     }
 
     /**
@@ -169,8 +167,8 @@ service cloud.firestore {
     match /transport_alerts/{alertId} {
       allow get, list: if isStaff();
       allow create: if isStaff();
-      allow update: if (hasRole('Admin') || resource.data.assignedToUserId == request.auth.uid) && resource != null;
-      allow delete: if hasRole('Admin') && resource != null;
+      allow update: if (hasRole('admin') || hasRole('Admin') || resource.data.assignedToUserId == request.auth.uid) && resource != null;
+      allow delete: if (hasRole('admin') || hasRole('Admin')) && resource != null;
     }
 
     /**
@@ -182,9 +180,9 @@ service cloud.firestore {
      */
     match /compliance_records/{recordId} {
       allow get, list: if isStaff();
-      allow create: if (hasRole('Admin') || request.resource.data.auditedByUserId == request.auth.uid);
-      allow update: if hasRole('Admin') && resource != null;
-      allow delete: if hasRole('Admin') && resource != null;
+      allow create: if (hasRole('admin') || hasRole('Admin') || request.resource.data.auditedByUserId == request.auth.uid);
+      allow update: if (hasRole('admin') || hasRole('Admin')) && resource != null;
+      allow delete: if (hasRole('admin') || hasRole('Admin')) && resource != null;
     }
   }
 }
