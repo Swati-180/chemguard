@@ -1,9 +1,9 @@
-
 "use client"
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Zap, Bell, Shield, Search, Eye } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 const recommendations = [
   {
