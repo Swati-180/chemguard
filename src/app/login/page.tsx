@@ -77,7 +77,7 @@ export default function LoginPage() {
     setIsProvisioning(true)
     const demoUsers = [
       { email: "admin@chemguard.ai", password: "admin123", role: "admin", name: "Dr. Elena Vance" },
-      { email: "pharma@chemguard.ai", password: "pharma123", role: "pharma", name: "Dr. Amelia Reed" },
+      { email: "pharma@chemguard.ai", password: "pharma123", role: "pharma", name: "Pharma Lab User" },
       { email: "transport@chemguard.ai", password: "transport123", role: "transporter", name: "K. Kumar" }
     ]
 
@@ -167,7 +167,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen w-full bg-[#0a0f18] flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      {/* Background patterns and glows omitted for brevity, keeping existing UI structure */}
+      {/* Background patterns and glows */}
       <div className="absolute inset-0 opacity-20 pointer-events-none">
         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
           <defs>
