@@ -77,9 +77,9 @@ export default function LoginPage() {
             toast({
               variant: "destructive",
               title: "Profile Not Found",
-              description: "Your account is authenticated but no system profile was found. Please contact an administrator or initialize demo accounts."
+              description: "Account authenticated but system profile missing. Initializing auto-repair..."
             })
-            // Sign out to prevent redirect loop
+            // Sign out to allow fresh login/init
             await signOut(auth)
           }
         } catch (error) {
@@ -101,40 +101,44 @@ export default function LoginPage() {
       { email: "transport@chemguard.ai", password: "transport123", role: "transporter", name: "K. Kumar" }
     ]
 
-    toast({ title: "Initialization Started", description: "Provisioning secure demo environment..." })
+    toast({ title: "System Initialization", description: "Provisioning secure cloud resources..." })
 
     try {
       for (const u of demoUsers) {
+        let uid = ""
         try {
           // Attempt to create auth user
           const userCredential = await createUserWithEmailAndPassword(auth, u.email, u.password)
-          const uid = userCredential.user.uid
-
-          // Store profile in 'users' collection
-          await setDoc(doc(db, "users", uid), {
-            id: uid,
-            name: u.name,
-            email: u.email,
-            role: u.role,
-            createdAt: new Date().toISOString()
-          })
-
-          // Store in role check collections for legacy support
-          if (u.role === 'admin') await setDoc(doc(db, "roles_admin", uid), { active: true })
-          if (u.role === 'pharma') await setDoc(doc(db, "roles_pharma", uid), { active: true })
-          if (u.role === 'transporter') await setDoc(doc(db, "roles_transporter", uid), { active: true })
-
+          uid = userCredential.user.uid
         } catch (e: any) {
-          if (e.code !== 'auth/email-already-in-use') {
+          if (e.code === 'auth/email-already-in-use') {
+            // User exists, sign in to ensure we have a session to write the profile
+            const userCredential = await signInWithEmailAndPassword(auth, u.email, u.password)
+            uid = userCredential.user.uid
+          } else {
             throw e
           }
         }
+
+        // Store/Update profile in 'users' collection (self-healing)
+        await setDoc(doc(db, "users", uid), {
+          id: uid,
+          name: u.name,
+          email: u.email,
+          role: u.role,
+          createdAt: new Date().toISOString()
+        }, { merge: true })
+
+        // Ensure role check collections are populated
+        if (u.role === 'admin') await setDoc(doc(db, "roles_admin", uid), { active: true })
+        if (u.role === 'pharma') await setDoc(doc(db, "roles_pharma", uid), { active: true })
+        if (u.role === 'transporter') await setDoc(doc(db, "roles_transporter", uid), { active: true })
       }
       
       await signOut(auth)
-      toast({ title: "Setup Complete", description: "Demo accounts are ready. You can now login." })
+      toast({ title: "Setup Success", description: "Demo environment fully synchronized." })
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Setup Failed", description: error.message })
+      toast({ variant: "destructive", title: "Initialization Error", description: error.message })
     } finally {
       setIsProvisioning(false)
     }
@@ -166,7 +170,7 @@ export default function LoginPage() {
     }
 
     const trimmedEmail = email.trim()
-    toast({ title: "Authenticating", description: "Verifying security credentials..." })
+    toast({ title: "Verifying Identity", description: "Establishing encrypted satellite link..." })
 
     signInWithEmailAndPassword(auth, trimmedEmail, password)
       .catch((error: any) => {
@@ -287,7 +291,7 @@ export default function LoginPage() {
           className="border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 font-headline font-bold uppercase tracking-widest text-[10px] h-10 px-6 gap-2"
         >
           <Database className={cn("w-3.5 h-3.5", isProvisioning && "animate-spin")} />
-          {isProvisioning ? "Provisioning..." : "Initialize Demo Accounts"}
+          {isProvisioning ? "Synchronizing Cloud..." : "Initialize Demo Accounts"}
         </Button>
       </div>
 

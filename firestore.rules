@@ -13,25 +13,27 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Helper to fetch user data for role checks
+    // Helper to fetch user data for role checks safely
     function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      let path = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(path) ? get(path).data : {};
     }
 
     function isAdmin() {
-      return isSignedIn() && getUserData().role == 'admin';
+      return isSignedIn() && getUserData().get('role', '') == 'admin';
     }
 
     function isPharma() {
-      return isSignedIn() && (getUserData().role == 'pharma' || isAdmin());
+      return isSignedIn() && (getUserData().get('role', '') == 'pharma' || isAdmin());
     }
 
     function isTransporter() {
-      return isSignedIn() && (getUserData().role == 'transporter' || isAdmin());
+      return isSignedIn() && (getUserData().get('role', '') == 'transporter' || isAdmin());
     }
 
     function hasAnyRole() {
-      return isSignedIn() && (getUserData().role in ['admin', 'pharma', 'transporter']);
+      let role = getUserData().get('role', '');
+      return isSignedIn() && (role in ['admin', 'pharma', 'transporter']);
     }
 
     // --- COLLECTION RULES ---
@@ -44,7 +46,7 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Legacy role check collections (kept for compatibility with existing code)
+    // Legacy role check collections
     match /roles_admin/{userId} {
       allow get, list: if isSignedIn();
       allow write: if isOwner(userId) || isAdmin();
