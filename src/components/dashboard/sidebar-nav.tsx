@@ -36,7 +36,7 @@ const navItems = [
   { title: "Live Monitoring", icon: Activity, href: "/live-monitoring" },
   { title: "Chemicals", icon: Beaker, href: "/chemicals" },
   { title: "Shipments", icon: Truck, href: "/shipments" },
-  { title: "Hardware Monitoring", icon: Cpu, href: "#" },
+  { title: "Hardware Monitoring", icon: Cpu, href: "/hardware-monitoring" },
   { title: "AI Intelligence", icon: BrainCircuit, href: "#" },
   { title: "Alerts", icon: Bell, href: "#" },
   { title: "Users", icon: Users, href: "#" },
