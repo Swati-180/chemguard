@@ -24,7 +24,8 @@ import {
   ChevronLeft, 
   ChevronRight,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  ShieldAlert
 } from "lucide-react"
 import {
   DropdownMenu,
