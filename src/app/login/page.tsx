@@ -77,10 +77,12 @@ export default function LoginPage() {
         } catch (error: any) {
           // 2. If user exists, sign in to get the UID and sync profile
           if (error.code === 'auth/email-already-use' || error.code === 'auth/email-already-in-use') {
-            const userCred = await signInWithEmailAndPassword(auth, account.email, account.password)
-            uid = userCred.user.uid
-          } else {
-            continue 
+            try {
+              const userCred = await signInWithEmailAndPassword(auth, account.email, account.password)
+              uid = userCred.user.uid
+            } catch (signInErr) {
+              // Ignore sign in errors during massive init
+            }
           }
         }
 
@@ -93,14 +95,6 @@ export default function LoginPage() {
             name: account.name,
             createdAt: new Date().toISOString()
           }, { merge: true })
-
-          // 4. Set legacy role check collections for security rules
-          const roleMap: Record<string, string> = {
-            admin: "roles_admin",
-            pharma: "roles_pharma",
-            transporter: "roles_transporter"
-          }
-          await setDoc(doc(db, roleMap[account.role], uid), { active: true }, { merge: true })
         }
       }
       
@@ -141,12 +135,36 @@ export default function LoginPage() {
             if (role === 'admin') router.push("/admin/dashboard")
             else if (role === 'pharma') router.push("/pharma/dashboard")
             else if (role === 'transporter') router.push("/transport/dashboard")
-            else await signOut(auth)
+            else {
+              toast({ variant: "destructive", title: "Invalid Role", description: "Role not recognized by system." })
+              await signOut(auth)
+            }
           } else {
-            // Profile missing, allow re-auth to attempt repair
-            await signOut(auth)
+            // Profile missing in DB despite being authenticated
+            // This happens on first-time setup for public links
+            // Force a quick re-sync
+            const email = user.email
+            let portal: 'admin' | 'pharma' | 'transporter' | null = null
+            if (email?.includes('admin')) portal = 'admin'
+            else if (email?.includes('pharma')) portal = 'pharma'
+            else if (email?.includes('transport')) portal = 'transporter'
+
+            if (portal) {
+              const creds = demoCreds[portal]
+              await setDoc(doc(db, "users", user.uid), {
+                id: user.uid,
+                email: creds.email,
+                role: creds.role,
+                name: creds.name,
+                createdAt: new Date().toISOString()
+              }, { merge: true })
+              // Redirect will trigger on next cycle
+            } else {
+              await signOut(auth)
+            }
           }
         } catch (error) {
+          // If security rules block the get, it's a permission issue
           await signOut(auth)
         }
       }
@@ -160,29 +178,30 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, creds.email, creds.password)
-      // Success will trigger the redirect useEffect above once isVerifying is set to false
-      setIsVerifying(false)
+      // Success will trigger the redirect useEffect above
     } catch (error: any) {
-      // If login fails, try a quick re-init and retry once
+      // If login fails, try to re-initialize and retry once
       try {
         await initializeDemoAccounts()
         await signInWithEmailAndPassword(auth, creds.email, creds.password)
-        setIsVerifying(false)
       } catch (retryError: any) {
         setIsVerifying(false)
         toast({ 
           variant: "destructive", 
           title: "Authentication Failed", 
-          description: "Access Denied: The email or password entered is incorrect." 
+          description: "Access Denied: The portal is currently restricted." 
         })
       }
+    } finally {
+      // We don't set isVerifying to false here immediately to allow the redirect useEffect to finish
+      setTimeout(() => setIsVerifying(false), 2000)
     }
   }
 
   // Loading Screen
   if (isUserLoading || isVerifying || isInitializing) {
     return (
-      <div className="min-h-screen w-full bg-[#0a0f18] flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      <div className="min-h-screen w-full bg-[#0a0f18] flex flex-col items-center justify-center p-6 relative overflow-hidden text-white">
         <div className="absolute inset-0 opacity-10 pointer-events-none">
           <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -213,7 +232,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#0a0f18] flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen w-full bg-[#0a0f18] flex flex-col items-center justify-center p-6 relative overflow-hidden text-white">
       <div className="absolute inset-0 opacity-20 pointer-events-none">
         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
           <defs>
@@ -327,7 +346,7 @@ function PortalCard({
 
   const btnMap = {
     primary: "bg-primary/20 text-primary border-primary/30 hover:bg-primary/30 shadow-[0_0_15px_rgba(46,222,255,0.1)]",
-    accent: "bg-accent/20 text-accent border-accent/30 hover:bg-accent/30 shadow-[0_0_15px_rgba(163,244,190,0.1)]",
+    accent: "bg-accent/20 text-accent border-accent/30 hover:bg-accent/30 shadow-[0_0_15px_rgba(16,185,129,0.1)]",
     orange: "bg-orange-400/20 text-orange-400 border-orange-400/30 hover:bg-orange-400/30 shadow-[0_0_15px_rgba(251,146,60,0.1)]"
   }
 

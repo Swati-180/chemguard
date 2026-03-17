@@ -13,7 +13,7 @@ service cloud.firestore {
     }
 
     function isStaff() {
-      // Expanded to include all demo and production roles for cross-portal visibility
+      // Basic staff check - allows both lowercase and capitalized variants
       return isSignedIn() && getUserData() != null && 
              getUserData().role in ['admin', 'pharma', 'transporter', 'Admin', 'Dispatcher', 'Monitor'];
     }
@@ -25,15 +25,12 @@ service cloud.firestore {
     // --- COLLECTION RULES ---
 
     match /users/{userId} {
-      allow get: if isOwner(userId) || isStaff();
+      // CRITICAL: isOwner check must not rely on isStaff to avoid recursion during first-time login
+      allow get: if isSignedIn() && (request.auth.uid == userId || isStaff());
       allow list: if isAdmin();
-      allow create: if isOwner(userId);
-      allow update: if (isOwner(userId) || isAdmin()) && resource != null;
-      allow delete: if isAdmin() && resource != null;
-      
-      function isOwner(uid) {
-        return isSignedIn() && request.auth.uid == uid;
-      }
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow delete: if isAdmin();
     }
 
     match /drivers/{driverId} {
@@ -109,6 +106,16 @@ service cloud.firestore {
     }
     
     match /usage_logs/{logId} {
+      allow get, list: if isStaff();
+      allow write: if isStaff();
+    }
+
+    match /checkpoint_logs/{logId} {
+      allow get, list: if isStaff();
+      allow write: if isStaff();
+    }
+
+    match /shipment_history/{logId} {
       allow get, list: if isStaff();
       allow write: if isStaff();
     }
