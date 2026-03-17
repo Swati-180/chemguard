@@ -1,10 +1,11 @@
+
 "use client"
 
 import { RoleGuard } from "@/components/auth/role-guard"
 
 /**
  * Protection layout for the Admin Portal.
- * Only users with the 'admin' role can access sub-routes.
+ * Supports both uppercase and lowercase role variations for robustness.
  */
 export default function AdminLayout({
   children,
@@ -12,7 +13,7 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   return (
-    <RoleGuard allowedRoles={["admin"]}>
+    <RoleGuard allowedRoles={["admin", "Admin"]}>
       {children}
     </RoleGuard>
   )
