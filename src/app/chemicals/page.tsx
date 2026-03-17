@@ -15,7 +15,7 @@ import { AddChemicalModal } from "@/components/chemicals/add-chemical-modal"
 import { EmptyInventoryState } from "@/components/chemicals/empty-inventory-state"
 import { Button } from "@/components/ui/button"
 import { Plus, Database, Download, History, Filter } from "lucide-react"
-import { useCollection, useFirestore } from "@/firebase"
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase"
 import { collection, doc, writeBatch } from "firebase/firestore"
 import { toast } from "@/hooks/use-toast"
 
@@ -28,7 +28,8 @@ export default function ChemicalsPage() {
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false)
   
   // Real-time inventory listener
-  const { data: inventory, isLoading } = useCollection(collection(db, "chemical_inventory"))
+  const inventoryQuery = useMemoFirebase(() => collection(db, "chemical_inventory"), [db])
+  const { data: inventory, isLoading } = useCollection(inventoryQuery)
 
   const handleSeedDemoData = async () => {
     const batch = writeBatch(db)
