@@ -1,6 +1,6 @@
-
 "use client"
 
+import * as React from "react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { 
   PieChart, Pie, Cell, 
@@ -30,7 +30,11 @@ export function AlertsAnalyticsPanel() {
   const distribution = React.useMemo(() => {
     if (!alerts) return []
     const counts = { Critical: 0, Warning: 0, Info: 0 }
-    alerts.forEach(a => { if (counts[a.severity as keyof typeof counts] !== undefined) counts[a.severity as keyof typeof counts]++ })
+    alerts.forEach(a => { 
+      if (counts[a.severity as keyof typeof counts] !== undefined) {
+        counts[a.severity as keyof typeof counts]++ 
+      }
+    })
     return [
       { name: "Critical", value: counts.Critical, color: "#ef4444" },
       { name: "Warning", value: counts.Warning, color: "#f97316" },
